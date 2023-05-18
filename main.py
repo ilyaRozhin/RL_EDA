@@ -41,6 +41,10 @@ class MainBoard:
         self.wires_drawing()
         return self.image.copy()
         #ImageShow.show(self.image, "Board")
+    def show_board_special(self):
+        self.paint_elements()
+        self.wires_drawing()
+        ImageShow.show(self.image, "Board")
 
     def wires_drawing(self):
         draw = ImageDraw.Draw(self.image)

@@ -2,6 +2,8 @@ import main
 import math
 import random
 import configurations
+from PIL import ImageShow
+import matplotlib.pyplot as plt
 
 
 class State:
@@ -16,7 +18,7 @@ class State:
 
     def reward_calculation(self, alpha, beta, board):
         if board.design_error():
-            self.reward -= 100
+            self.reward -= 10
         else:
             self.reward = alpha*board.HPWL() + beta*board.location_density()
 
@@ -44,6 +46,11 @@ class Agent:
         self.locations = []
         self.epsilon = epsilon
         self.image_for_GIF = []
+        self.lastImage = []
+        self.firstImage = []
+        self.firstReward = 0
+        self.lastReward = 0
+        self.massRewards = []
         self.init_task()
 
     def rebuild_board(self, locations):
@@ -56,16 +63,22 @@ class Agent:
     def init_task(self):
         mass_location_states = []
         for index in range(0, len(self.environment.elements)):
-            x_new = random.randint(0, len(self.element_states[index]))
-            y_new = random.randint(0, len(self.element_states[index][0]))
-
+            x_new = random.randint(0, len(self.element_states[index])-1)
+            y_new = random.randint(0, len(self.element_states[index][0])-1)
+            print("New_values:", x_new, y_new)
             self.element_states[index][x_new][y_new].in_this_state = True
             mass_location_states.append([x_new, y_new])
 
         self.locations = [i for i in mass_location_states]
-        print(self.locations)
         self.rebuild_board(self.locations)
-        self.image_for_GIF.append(self.image_state())
+        self.image_for_GIF.append(self.image_state())              # Для генерации гифки раскомментить
+        #self.lastImage.clear()
+        self.firstImage.append(self.image_state())
+        #for i in range(0, len(self.locations)):
+        #    self.element_states[i][self.locations[i][0]][self.locations[i][1]].reward_calculation(1.5, 0.7,
+        #                                                                                          self.environment)
+        #    self.firstReward += self.element_states[i][self.locations[i][0]][self.locations[i][1]].reward
+        #self.massRewards.append(self.firstReward)
         mass_location_states.clear()
 
     def image_state(self):
@@ -77,6 +90,7 @@ class Agent:
             for j in self.element_states[i][self.locations[i][1]][self.locations[i][0]].rating.values():
                 if j != 0:
                     rating_is_zero = False
+                    print("Break for rating_is_zero")
                     break
             print(rating_is_zero)
             if rating_is_zero:
@@ -107,50 +121,67 @@ class Agent:
                     self.element_states[i][self.locations[i][0]][
                         self.locations[i][1]].last_chosen_action = chosen_action
             print("***** 1 ******")
-            old_location = self.locations[i]
+            print(self.locations[i][0], self.locations[i][1])
+            old_location = []
+            old_location.append(self.locations[i][0])
+            old_location.append(self.locations[i][1])
+            print("Old first:", old_location[0], old_location[1])
             self.element_states[i][self.locations[i][0]][self.locations[i][1]].in_this_state = False
+            step_random = 1
             if chosen_action == "up":
-                y = old_location[1] - 1
+                y = old_location[1] - step_random
                 if y < 0:
-                    self.locations[i][1] = y + 1
+                    self.locations[i][1] = y + step_random
                 else:
                     self.locations[i][1] = y
             elif chosen_action == "down":
-                y = old_location[1] + 1
+                y = old_location[1] + step_random
                 if y >= len(self.element_states[i][0]):
-                    self.locations[i][1] = y - 1
+                    self.locations[i][1] = y - step_random
                 else:
                     self.locations[i][1] = y
             elif chosen_action == "left":
-                x = old_location[0] - 1
+                x = old_location[0] - step_random
                 if x < 0:
-                    self.locations[i][0] = x + 1
+                    self.locations[i][0] = x + step_random
                 else:
                     self.locations[i][0] = x
             elif chosen_action == "right":
-                x = old_location[0] + 1
+                x = old_location[0] + step_random
                 if x >= len(self.element_states[i]):
-                    self.locations[i][0] = x - 1
+                    self.locations[i][0] = x - step_random
                 else:
                     self.locations[i][0] = x
             print(self.locations[i][0], self.locations[i][1], old_location[0], old_location[1], len(self.element_states[i][0]))
             self.element_states[i][self.locations[i][0]][self.locations[i][1]].in_this_state = True
             self.rebuild_board(self.locations)
             self.element_states[i][old_location[0]][old_location[1]].reward_calculation(1, 1, self.environment)
+            print("Old second:", old_location[0], old_location[1])
             new_state = self.element_states[i][self.locations[i][0]][self.locations[i][1]]
             self.element_states[i][old_location[0]][old_location[1]].\
-                expected_sarsa(0.9, 0.9, new_state)
-            self.image_for_GIF.append(self.image_state())
+                expected_sarsa(0.2, 0.9, new_state)
+            self.image_for_GIF.append(self.image_state())          ## Для активации гифки раскомментить
+            self.lastImage.clear()
+            self.lastImage.append(self.image_state())
+            self.lastReward = 0
+        for i in range(0, len(self.locations)):
+            self.element_states[i][self.locations[i][0]][self.locations[i][1]].reward_calculation(3.5, 1,
+                                                                                                      self.environment)
+            self.lastReward += self.element_states[i][self.locations[i][0]][self.locations[i][1]].reward
+        self.massRewards.append(self.lastReward)
 
     def launch(self, count_iter):
         for i in range(0, count_iter):
             self.transition()
+        ImageShow.show(self.firstImage[0])
+        ImageShow.show(self.lastImage[0])
+        print(self.lastReward, self.firstReward)
         self.image_for_GIF[0].save(
-            'pcb_result.gif',
+           'pcb_result.gif',
             save_all=True,
             append_images=self.image_for_GIF[1:],
-            optimize=False,
-            duration=40,
+            optimize=True,
+            duration=1,
             loop=0
         )
 
@@ -158,7 +189,19 @@ class Agent:
 if __name__ == '__main__':
     config_dict = configurations.init_configuration_dict()
     new_board = main.MainBoard(600, 600, 8)
-    for i in config_dict["config1"]:
+    for i in config_dict["config2"]:
         new_board.append_element(i[0], i[1], i[2], i[3], i[4])
-    a = Agent(new_board, config_dict["config1"], 0.9)
-    a.launch(8000)
+    new_board.show_board_special()
+    a = Agent(new_board, config_dict["config2"], 0.2)
+    count_of_iter = 800
+    a.launch(count_of_iter)
+    #x = np.arange(count_of_iter)
+    #info = {'reward_first': a.massRewards}
+    #y = pd.DataFrame(info)
+    #print (y)
+    plt.plot([i for i in range(0, count_of_iter)], a.massRewards)
+    plt.title("Value of Rewards")
+    plt.xlabel("Count of runs")
+    plt.ylabel("Value of Total Reward")
+    plt.show()
+
