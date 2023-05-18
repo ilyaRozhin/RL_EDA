@@ -3,11 +3,13 @@ import math
 
 
 class MainBoard:
-    width = 0
-    height = 0
-    gridDivisionSize = 0
-    image = Image
-    elements = []
+    def __init__(self, user_width, user_height, user_grid):
+        self.width = user_width
+        self.height = user_height
+        self.gridDivisionSize = user_grid
+        self.image = Image.new("RGB", (self.width, self.height), (0, 255, 0))
+        self.paint_grid()
+        self.elements = []
 
     def paint_elements(self):
         if len(self.elements) != 0:
@@ -25,42 +27,117 @@ class MainBoard:
             start_vertical_position = [(0, j*self.gridDivisionSize), (self.width, j*self.gridDivisionSize)]
             image_grid.line(start_vertical_position, 1)
 
-    def paint_board(self):
-        self.image = Image.new("RGB", (self.width, self.height), (0, 255, 0))
-
     def append_new_element(self, x_c, y_c, h, w, name):
         self.elements.append(BoardElement(x_c, y_c, h, w, self.gridDivisionSize, name))
 
-    def append_element(self, instance, x_c, y_c, rotation=""):
+    def append_element(self, instance, x_c, y_c, rotation="", mass_pin_channels=[]):
         element_buf = BoardElement(x_c, y_c, instance.h, instance.w, self.gridDivisionSize,
-                                   instance.element_name, rotation)
+                                   instance.element_name, rotation, mass_pin_channels)
         element_buf.append_pins(instance.spm)
         self.elements.append(element_buf)
 
     def show_board(self):
         self.paint_elements()
-        ImageShow.show(self.image, "Board")
+        self.wires_drawing()
+        return self.image.copy()
+        #ImageShow.show(self.image, "Board")
 
-    def __init__(self, user_width, user_height, user_grid):
-        self.width = user_width
-        self.height = user_height
-        self.gridDivisionSize = user_grid
-        self.paint_board()
-        self.paint_grid()
+    def wires_drawing(self):
+        draw = ImageDraw.Draw(self.image)
+        mass_in_pins = []
+        mass_out_pins = []
+        for i in self.elements:
+            for j in i.pin:
+                if j.pins_connection[1] == "in":
+                    mass_in_pins.append(j)
+                elif j.pins_connection[1] == "out":
+                    mass_out_pins.append(j)
+        for i in mass_in_pins:
+            for j in mass_out_pins:
+                if i.pins_connection[0] == j.pins_connection[0]:
+                    draw.line((i.location[0]*self.gridDivisionSize+2, i.location[1]*self.gridDivisionSize+2,
+                               j.location[0]*self.gridDivisionSize+2, j.location[1]*self.gridDivisionSize+2),
+                              fill="purple", width=1)
+                    print((i.location[0], j.location[0], i.location[1], j.location[1]))
+
+    def HPWL(self):
+        result_length = 0
+        mass_in_pins = []
+        mass_out_pins = []
+        for i in self.elements:
+            for j in i.pin:
+                if j.pins_connection[1] == "in":
+                    mass_in_pins.append(j)
+                elif j.pins_connection[1] == "out":
+                    mass_out_pins.append(j)
+        for i in mass_in_pins:
+            for j in mass_out_pins:
+                if i.pins_connection[0] == j.pins_connection[0]:
+                    result_length += abs(i.location[0] - j.location[0]) + abs(i.location[1] - j.location[1])
+        return result_length
+
+    def location_density(self):
+        element_area = 0
+        max_x = 0
+        min_x = 100000
+        max_y = 0
+        min_y = 100000
+        for i in self.elements:
+            if i.x_c + i.w/2 > max_x:
+                max_x = i.x_c + i.w/2
+            elif i.x_c - i.w/2 < min_x:
+                min_x = i.x_c - i.w/2
+            if i.y_c + i.h/2 > max_y:
+                max_y = i.y_c + i.h/2
+            elif i.y_c - i.h/2 < min_y:
+                min_y = i.y_c - i.h/2
+
+            element_area += i.h*i.w
+        extreme_area = (max_x-min_x)*(max_y-min_y)
+        return element_area/extreme_area
+
+    ## Добавить в ошибку обработку выхода части элемента за границу платы
+    def design_error(self):
+        mass_in_pins = []
+        mass_out_pins = []
+        for i in self.elements:
+            for j in self.elements:
+                if j == i:
+                    continue
+                else:
+                    if abs(i.x_c-j.x_c) <= (i.w + j.w)/2:
+                        return True
+                    if abs(i.y_c-j.y_c) <= (i.h + j.h)/2:
+                        return True
+            for j in i.pin:
+                if j.pins_connection[1] == "in":
+                    mass_in_pins.append(j)
+                elif j.pins_connection[1] == "out":
+                    mass_out_pins.append(j)
+        for i in mass_in_pins:
+            for j in mass_out_pins:
+                if i == j:
+                    continue
+                if i.pins_connection[0] == j.pins_connection[0]:
+                    for z in mass_in_pins:
+                        if z == i or z == j:
+                            continue
+                        for s in mass_out_pins:
+                            if s == z or s == i or s == j:
+                                continue
+                            if z.pins_connection[0] == s.pins_connection[0]:
+                                if i.location[0] - z.location[0] < 0 and j.location[0] - s.location[0] < 0 \
+                                        or i.location[0] - z.location[0] > 0 and j.location[0] - s.location[0] > 0:
+                                    return False
+                                elif i.location[0] - s.location[0] < 0 and j.location[0] - z.location[0] < 0 \
+                                        or i.location[0] - s.location[0] > 0 and j.location[0] - z.location[0] > 0:
+                                    return False
+                                else:
+                                    return True
 
 
 class BoardElement:
-    x_c = 0         #Расположение центра элемента ось oX
-    y_c = 0         #Расположение центра элемента ось oY
-    h = 0           #Высота элемента
-    w = 0           #Ширина элемента
-    pin = []        #Пины к которым идет
-    grid_size = 0   #Размер сетки
-    spm = []
-    element_name = ""
-    rotation = ""
-
-    def __init__(self, x, y, h, w, grid_size, name, rotation=""):
+    def __init__(self, x=0, y=0, h=0, w=0, grid_size=0, name='', rotation="", mass_pin_channels=[]):
         self.x_c = x
         self.y_c = y
         self.h = h
@@ -68,33 +145,36 @@ class BoardElement:
         self.grid_size = grid_size
         self.element_name = name
         self.rotation = rotation
+        self.pin = []
+        self.spm = []
+        self.pin_channels = []
+        for i in mass_pin_channels:
+            self.pin_channels.append(i)
 
     def recalculate_pins(self):
         new_pins = []
         if self.rotation == "left":
             for i in self.pin:
-                #print("**********")
-                #print(i.location)
-                #print(self.x_c, self.y_c)
                 location = (self.x_c + math.cos(math.pi / 2) * (i.location[0] - self.x_c) + math.sin(math.pi / 2) *
-                            (i.location[1] - self.y_c), self.y_c - math.sin(math.pi / 2) *
-                            (i.location[0] - self.x_c) + math.cos(math.pi / 2) * (i.location[1] - self.y_c))
-                #print(location)
+                            (i.location[1] - self.y_c),
+                            self.y_c - math.sin(math.pi / 2) *
+                            (i.location[0] - self.x_c) + math.cos(math.pi / 2) * (i.location[1] - self.y_c) - 0.5)
+
                 pin_mass = i.pins_connection
-                self.pin.remove(i)
-                new_pins.append(Pin(location[0], location[1], pin_mass))
+                new_pins.append(Pin(location[0], location[1], pin_mass[0], pin_mass[1]))
         elif self.rotation == "right":
             for i in self.pin:
                 location = (self.x_c + math.cos(math.pi / 2) * (i.location[0] - self.x_c) - math.sin(math.pi / 2) *
-                              (i.location[1] - self.y_c), self.y_c + math.sin(math.pi / 2) *
-                              (i.location[0] - self.x_c) + math.cos(math.pi / 2) * (i.location[1] - self.y_c))
+                            (i.location[1] - self.y_c),
+                            self.y_c + math.sin(math.pi / 2) *
+                            (i.location[0] - self.x_c) + math.cos(math.pi / 2) * (i.location[1] - self.y_c))
                 pin_mass = i.pins_connection
-                self.pin.remove(i)
-                #print(self.pin)
-                self.pin.append(Pin(location[0], location[1], pin_mass))
+                new_pins.append(Pin(location[0], location[1], pin_mass[0], pin_mass[1]))
+        self.pin = []
         for i in new_pins:
-            self.pin.append(Pin(i.location[0], i.location[1], i.pins_connection))
+            self.pin.append(Pin(i.location[0], i.location[1], i.pins_connection[0], i.pins_connection[1]))
         new_pins.clear()
+
     def paint_element(self, image, grid_size):
         image_print_element = ImageDraw.Draw(image)
         if self.rotation in ["left", "right"]:
@@ -103,7 +183,7 @@ class BoardElement:
             x_high_pos = (self.x_c + self.h/2)*grid_size
             y_high_pos = (self.y_c + self.w/2)*grid_size
             self.recalculate_pins()
-            print([i.location for i in self.pin])
+
         else:
             x_low_pos = (self.x_c - self.w / 2) * grid_size
             y_low_pos = (self.y_c - self.h / 2) * grid_size
@@ -115,59 +195,75 @@ class BoardElement:
             i.paint_pin(image_print_element, grid_size)
 
     def append_pins(self, locations_places):
+        counter = -1
         for i in locations_places:
-           if len(i) != 0:
-               self.append_new_pin(i[0], i[1], i[2], i[3])
+            counter += 1
+            if len(i) != 0:
+                if len(self.pin_channels) != 0:
+                    self.append_new_pin(i[0], i[1], self.pin_channels[counter], i[3])
+                else:
+                    self.append_new_pin(i[0], i[1], [], i[3])
 
     def append_new_pin(self, location, place_pin, connect_pins, step_size_contact):
-        if step_size_contact == 1:
-            h_new = math.floor(self.h*self.grid_size/(2*self.grid_size))
-            w_new = math.floor(self.w*self.grid_size/(2*self.grid_size))
-        else:
-            indent_h = (self.h - (len(place_pin)-1) * step_size_contact) / 2
-            indent_w = (self.w - (len(place_pin) - 1) * step_size_contact) / 2
-            h_new = self.h/2 - indent_h
-            w_new = self.w/2 - indent_w
-        if len(place_pin) != 0:
-            if location == "right":
-                for i in place_pin:
-                    x_pin = self.x_c + self.w/2 - 0.25
-                    y_pin = self.y_c - h_new + (i-1)*step_size_contact - 0.225
-                    new_pin = Pin(x_pin, y_pin, connect_pins)
-                    self.pin.append(new_pin)
-            elif location == "left":
-                for i in place_pin:
-                    x_pin = self.x_c - self.w/2 - 0.25
-                    y_pin = self.y_c - h_new + (i-1)*step_size_contact - 0.225
-                    new_pin = Pin(x_pin, y_pin, connect_pins)
-                    self.pin.append(new_pin)
-                    #print(new_pin)
-            elif location == "up":
-                for i in place_pin:
-                    x_pin = self.x_c - w_new + (i-1)*step_size_contact - 0.225
-                    y_pin = self.y_c - self.h/2 - 0.25
-                    new_pin = Pin(x_pin, y_pin, connect_pins)
-                    self.pin.append(new_pin)
-            elif location == "down":
-                for i in place_pin:
-                    x_pin = self.x_c - w_new + (i-1)*step_size_contact - 0.225
-                    y_pin = self.y_c + self.h / 2 - 0.25
-                    new_pin = Pin(x_pin, y_pin, connect_pins)
-                    self.pin.append(new_pin)
+        try:
+            if step_size_contact == 1:
+                h_new = math.floor(self.h*self.grid_size/(2*self.grid_size))
+                w_new = math.floor(self.w*self.grid_size/(2*self.grid_size))
             else:
-                print(location, " :string location is not correct")
+                indent_h = (self.h - (len(place_pin) - 1) * step_size_contact)/2
+                indent_w = (self.w - (len(place_pin) - 1) * step_size_contact)/2
+                h_new = self.h/2 - indent_h
+                w_new = self.w/2 - indent_w
+            if len(place_pin) != 0:
+                if location == "right":
+                    for i in range(0, len(place_pin)):
+                        x_pin = self.x_c + self.w/2 - 0.25
+                        y_pin = self.y_c - h_new + (place_pin[i]-1)*step_size_contact - 0.225
+                        if len(connect_pins) != 0:
+                            new_pin = Pin(x_pin, y_pin, connect_pins[i][0], connect_pins[i][1])
+                        else:
+                            new_pin = Pin(x_pin, y_pin)
+                        self.pin.append(new_pin)
+                elif location == "left":
+                    for i in range(0, len(place_pin)):
+                        x_pin = self.x_c - self.w/2 - 0.25
+                        y_pin = self.y_c - h_new + (place_pin[i]-1)*step_size_contact - 0.225
+                        if len(connect_pins) != 0:
+                            new_pin = Pin(x_pin, y_pin, connect_pins[i][0], connect_pins[i][1])
+                        else:
+                            new_pin = Pin(x_pin, y_pin)
+                        self.pin.append(new_pin)
+                elif location == "up":
+                    for i in range(0, len(place_pin)):
+                        x_pin = self.x_c - w_new + (place_pin[i]-1)*step_size_contact - 0.225
+                        y_pin = self.y_c - self.h/2 - 0.25
+                        if len(connect_pins) != 0:
+                            new_pin = Pin(x_pin, y_pin, connect_pins[i][0], connect_pins[i][1])
+                        else:
+                            new_pin = Pin(x_pin, y_pin)
+                        self.pin.append(new_pin)
+                elif location == "down":
+                    for i in range(0, len(place_pin)):
+                        x_pin = self.x_c - w_new + (place_pin[i]-1)*step_size_contact - 0.225
+                        y_pin = self.y_c + self.h / 2 - 0.25
+                        if len(connect_pins) != 0:
+                            new_pin = Pin(x_pin, y_pin, connect_pins[i][0], connect_pins[i][1])
+                        else:
+                            new_pin = Pin(x_pin, y_pin)
+                        self.pin.append(new_pin)
+                else:
+                    print(location, " :string location is not correct")
+        except:
+            print("НЕ ВСЕ ДАННЫЕ О ПИНАХ ВВЕДЕНЫ!!!")
 
 
 class Pin:
-    pins_connection = []
-    location = (0, 0)
-    diligent_light = ""
 
-    def __init__(self, x, y, pin_mass):
+    def __init__(self, x, y, connection_name="", exit_input=""):
         self.location = (x, y)
-        self.pins_connection = pin_mass
+        self.pins_connection = (connection_name, exit_input)
 
-    def paint_pin(self, image, grid_size):
+    def paint_pin(self, image, grid_size):                      # Потом добавить названия connection_name на схему
         x_pin_start = self.location[0]*grid_size
         y_pin_start = self.location[1]*grid_size
         x_pin_end = (self.location[0] + 0.5) * grid_size
@@ -193,7 +289,8 @@ def init_dictionary():
                                                    "CD74HC123E": BoardElement(0, 0, 19.45, 6.6, 1, "CD74HC123E"),
                                                    "23LC1024-I/SN": BoardElement(0, 0, 4.9, 3.9, 1, "23LC1024-I/SN"),
                                                    "ADUC812BSZ": BoardElement(0, 0, 16, 16, 1, "ADUC812BSZ"),
-                                                   "AD420ARZ-32-REEL": BoardElement(0, 0, 15.2, 7.6, 1, "AD420ARZ-32-REEL")}
+                                                   "AD420ARZ-32-REEL": BoardElement(0, 0, 15.2, 7.6, 1, "AD420ARZ-32-REEL"),
+                                                   "ground": BoardElement(0, 0, 1, 1, 1, "ground")}
 
     element_dictionary["resistor1Om"].spm = [[], [], ["up", [3], [], 1], ["down", [3], [], 1]]
     element_dictionary["resistor10Om"].spm = [[], [], ["up", [3], [], 1], ["down", [3], [], 1]]
@@ -223,20 +320,5 @@ def init_dictionary():
                                             ["down", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], [], 0.9]]
     element_dictionary["AD420ARZ-32-REEL"].spm = [["left", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [], 1.27],
                                             ["right", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [], 1.27], [], []]
+    element_dictionary["ground"].spm = [[], [], ["up", [1], [], 1], []]
     return element_dictionary
-
-
-if __name__ == '__main__':
-    new_board = MainBoard(400, 400, 8)
-    el_dict = init_dictionary()
-    new_board.append_element(el_dict["K176TM2"], 20, 20)
-    new_board.append_element(el_dict["ADUC812BSZ"], 40, 30)
-    new_board.append_element(el_dict["resistor1Om"], 10, 10)
-    new_board.append_element(el_dict["CD74HC123E"], 10, 40, "left")
-    print(len(new_board.elements[0].pin))
-    #new_board.append_element(el_dict["resistor1Om"], 80, 80, "left")
-    print(len(new_board.elements[0].pin))
-    # Разобраться с поворотами
-    # Начать что-то делать с проводами
-    # Ввести названия на элементах
-    new_board.show_board()
