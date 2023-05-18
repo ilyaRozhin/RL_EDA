@@ -23,22 +23,24 @@ class State:
     def expected_sarsa(self, alpha, gamma, new_state):
         next_mat = 0
         sum_choice = 0
-        for i in new_state.rating.values():
-            sum_choice += i
-        for i in new_state.rating.keys():
-            next_mat += new_state.counter_action[i]*new_state.rating[i]/sum_choice
-        self.rating[self.last_chosen_action] += alpha*(self.reward + gamma*next_mat
-                                                       - self.rating[self.last_chosen_action])
+        for j in new_state.rating.values():
+            sum_choice += j
+        for j in new_state.rating.keys():
+            if sum_choice != 0:
+                next_mat += new_state.counter_action[j]*new_state.rating[j]/sum_choice
+
+        print(self.last_chosen_action + "!")
+        self.rating[self.last_chosen_action] += alpha*(self.reward + gamma*next_mat - self.rating[self.last_chosen_action])
 
 
 class Agent:
 
     def __init__(self, board, config, epsilon):
         self.environment = board
-        self.element_states = [[[State(j, s) for s in range(1, math.floor(board.height/board.gridDivisionSize))]
-                                for j in range(1, math.floor(board.width/board.gridDivisionSize))]
-                               for i in board.elements]
-        self.config = [i for i in config]
+        self.config = [s for s in config]
+        self.element_states = [[[State(j, s) for s in range(0, math.floor(board.height/board.gridDivisionSize))]
+                                        for j in range(0, math.floor(board.width/board.gridDivisionSize))]
+                                for z in board.elements]
         self.locations = []
         self.epsilon = epsilon
         self.image_for_GIF = []
@@ -53,13 +55,15 @@ class Agent:
 
     def init_task(self):
         mass_location_states = []
-        for i in range(0, len(self.environment.elements)):
-            num = random.randint(0, len(self.element_states[i])*len(self.element_states[i][0]))
-            self.element_states[i][math.floor(num/len(self.element_states[i]))][num
-                - math.floor(num/len(self.element_states[i]))].in_this_state = True
-            mass_location_states.append((math.floor(num/len(self.element_states[i])), num
-                - math.floor(num/len(self.element_states[i]))))
+        for index in range(0, len(self.environment.elements)):
+            x_new = random.randint(0, len(self.element_states[index]))
+            y_new = random.randint(0, len(self.element_states[index][0]))
+
+            self.element_states[index][x_new][y_new].in_this_state = True
+            mass_location_states.append([x_new, y_new])
+
         self.locations = [i for i in mass_location_states]
+        print(self.locations)
         self.rebuild_board(self.locations)
         self.image_for_GIF.append(self.image_state())
         mass_location_states.clear()
@@ -68,18 +72,21 @@ class Agent:
         return self.environment.show_board()
 
     def transition(self):
-        rating_is_zero = True
-        mass = ["left", "up", "down", "right"]
         for i in range(0, len(self.locations)):
-            for j in self.element_states[i][self.locations[i][0]][self.locations[i][1]].rating:
+            rating_is_zero = True
+            for j in self.element_states[i][self.locations[i][1]][self.locations[i][0]].rating.values():
                 if j != 0:
                     rating_is_zero = False
                     break
+            print(rating_is_zero)
             if rating_is_zero:
-                chosen_action = random.choice(mass)
+                print("***** 0 ******")
+                chosen_action = random.choice(["left", "up", "down", "right"])
+                print(chosen_action)
                 self.element_states[i][self.locations[i][0]][self.locations[i][1]].counter_action[chosen_action] += 1
                 self.element_states[i][self.locations[i][0]][self.locations[i][1]].last_chosen_action = chosen_action
             else:
+                print("***** 2 ******")
                 chosen_action = "up"
                 max_rating = self.element_states[i][self.locations[i][0]][self.locations[i][1]].rating["up"]
                 for s in self.element_states[i][self.locations[i][0]][self.locations[i][1]].rating.keys():
@@ -92,14 +99,14 @@ class Agent:
                     self.element_states[i][self.locations[i][0]][
                         self.locations[i][1]].last_chosen_action = chosen_action
                 else:
-                    buf = chosen_action
+                    mass = ["left", "up", "down", "right"]
                     mass.remove(chosen_action)
                     chosen_action = random.choice(mass)
-                    mass.append(buf)
                     self.element_states[i][self.locations[i][0]][self.locations[i][1]].counter_action[
                         chosen_action] += 1
                     self.element_states[i][self.locations[i][0]][
                         self.locations[i][1]].last_chosen_action = chosen_action
+            print("***** 1 ******")
             old_location = self.locations[i]
             self.element_states[i][self.locations[i][0]][self.locations[i][1]].in_this_state = False
             if chosen_action == "up":
@@ -126,6 +133,8 @@ class Agent:
                     self.locations[i][0] = x - 1
                 else:
                     self.locations[i][0] = x
+            print(self.locations[i][0], self.locations[i][1], old_location[0], old_location[1], len(self.element_states[i][0]))
+            self.element_states[i][self.locations[i][0]][self.locations[i][1]].in_this_state = True
             self.rebuild_board(self.locations)
             self.element_states[i][old_location[0]][old_location[1]].reward_calculation(1, 1, self.environment)
             new_state = self.element_states[i][self.locations[i][0]][self.locations[i][1]]
@@ -149,4 +158,7 @@ class Agent:
 if __name__ == '__main__':
     config_dict = configurations.init_configuration_dict()
     new_board = main.MainBoard(600, 600, 8)
+    for i in config_dict["config1"]:
+        new_board.append_element(i[0], i[1], i[2], i[3], i[4])
     a = Agent(new_board, config_dict["config1"], 0.9)
+    a.launch(8000)

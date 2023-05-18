@@ -58,7 +58,7 @@ class MainBoard:
                     draw.line((i.location[0]*self.gridDivisionSize+2, i.location[1]*self.gridDivisionSize+2,
                                j.location[0]*self.gridDivisionSize+2, j.location[1]*self.gridDivisionSize+2),
                               fill="purple", width=1)
-                    print((i.location[0], j.location[0], i.location[1], j.location[1]))
+                    #print((i.location[0], j.location[0], i.location[1], j.location[1]))
 
     def HPWL(self):
         result_length = 0
