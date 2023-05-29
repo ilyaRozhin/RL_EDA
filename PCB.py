@@ -148,22 +148,18 @@ class Board:
         """
         overlays = 0
         checked = []
-        num_elements = len(self.elements)
-        for s in range(0, num_elements):
-            for z in range(s, num_elements):
-                if s != z or z not in checked:
-                    delta_x = abs(self.elements[s].x_c - self.elements[z].x_c)
-                    print(delta_x, self.elements[s].x_c, self.elements[z].x_c)
-                    delta_y = abs(self.elements[s].y_c - self.elements[z].y_c)
-                    union_width = (self.elements[s].w + self.elements[z].w)/2
-                    union_height = (self.elements[s].h + self.elements[z].h)/2
-                    if delta_x == 0 and delta_y == 0:
-                        overlays += 2
-                        checked.append(z)
-                    elif delta_x <= union_width and delta_y <= union_height:
+        for s in self.elements:
+            for z in self.elements:
+                if s != z and z not in checked:
+                    delta_x = abs(s.x_c - z.x_c)
+                    delta_y = abs(s.y_c - z.y_c)
+                    union_width = (s.w + z.w)/2
+                    union_height = (s.h + z.h)/2
+                    if delta_x == 0 and delta_y == 0 or delta_x == 0 and delta_y < union_height or \
+                            delta_x < union_width and delta_y == 0 or \
+                            delta_x < union_width and delta_y < union_height:
                         overlays += 1
                         checked.append(z)
-            print(overlays)
         return overlays
 
     def check_wires_overlays(self):
