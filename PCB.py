@@ -81,7 +81,7 @@ class Board:
         in_pins = []
         out_pins = []
         for i in self.elements:
-            for j in i.pin:
+            for j in i.pins:
                 if j.connection[1] == "in":
                     in_pins.append(j)
                 elif j.connection[1] == "out":
@@ -95,6 +95,7 @@ class Board:
         draw_image = ImageDraw.Draw(self.image)
         grid = self.gridDivisionSize
         in_pins, out_pins = self.separate_in_out_pins()
+        counter = 0
         for i in in_pins:
             for j in out_pins:
                 if i.connection[0] == j.connection[0]:
@@ -103,6 +104,7 @@ class Board:
                     x_end = j.location[0]*grid
                     y_end = j.location[1]*grid+2
                     draw_image.line((x_start, y_start, x_end, y_end), fill="purple", width=1)
+                    counter += 1
 
     def HPWL(self):
         """
@@ -123,10 +125,10 @@ class Board:
         :return: плотность размещения.
         """
         element_area = 0
-        max_x = 0
-        min_x = 100000
-        max_y = 0
-        min_y = 100000
+        max_x = -0.5
+        min_x = 1000000
+        max_y = -0.5
+        min_y = 1000000
         for i in self.elements:
             if i.x_c + i.w/2 > max_x:
                 max_x = i.x_c + i.w/2
@@ -137,7 +139,7 @@ class Board:
             elif i.y_c - i.h/2 < min_y:
                 min_y = i.y_c - i.h/2
             element_area += i.h*i.w
-        return element_area/(max_x-min_x)*(max_y-min_y)
+        return element_area/((max_x-min_x)*(max_y-min_y))
 
     def check_overlays(self):
         """
@@ -149,20 +151,19 @@ class Board:
         num_elements = len(self.elements)
         for s in range(0, num_elements):
             for z in range(s, num_elements):
-                if s == z or z in checked:
-                    continue
-                else:
+                if s != z or z not in checked:
                     delta_x = abs(self.elements[s].x_c - self.elements[z].x_c)
+                    print(delta_x, self.elements[s].x_c, self.elements[z].x_c)
                     delta_y = abs(self.elements[s].y_c - self.elements[z].y_c)
                     union_width = (self.elements[s].w + self.elements[z].w)/2
                     union_height = (self.elements[s].h + self.elements[z].h)/2
                     if delta_x == 0 and delta_y == 0:
                         overlays += 2
                         checked.append(z)
-                    elif delta_x <= union_width or delta_y <= union_height:
+                    elif delta_x <= union_width and delta_y <= union_height:
                         overlays += 1
                         checked.append(z)
-
+            print(overlays)
         return overlays
 
     def check_wires_overlays(self):
@@ -210,7 +211,10 @@ class Board:
                 elif i.a == j.a and j.b != i.b:
                     continue
                 else:
-                    x_inter = (j.b - i.b)/(i.a - j.a)
+                    if i.a - j.a == 0:
+                        x_inter = 0
+                    else:
+                        x_inter = (j.b - i.b)/(i.a - j.a)
                     y_inter = j.a * x_inter + j.b
                     if x_in_i >= x_inter >= x_out_i or x_out_i >= x_inter >= x_in_i:
                         intersections += 1
@@ -235,7 +239,9 @@ class Board:
         design_error создает значение ошибки проектирования платы.
         :return: значение ошибки.
         """
-        return self.check_wires_overlays() + self.check_overlays()*5 + self.check_out_of_bounds()*10
+        print("Errors:", self.check_wires_overlays(), self.check_overlays(),  self.check_out_of_bounds())
+        result = self.check_wires_overlays() + self.check_overlays()*5 + self.check_out_of_bounds()*10
+        return result
 
     def __del__(self):
         self.elements.clear()
@@ -264,7 +270,7 @@ class Component:
         self.grid = grid_size
         self.name = name
         self.rotation = rotation
-        self.pin = []
+        self.pins = []
         self.spm = []
         self.pin_channels = []
         for i in pins:
@@ -279,19 +285,18 @@ class Component:
         x = self.x_c
         y = self.y_c
         if rotation == "left":
-            for i in self.pin:
+            for i in self.pins:
                 location = (x + (i.location[1] - y), y - (i.location[0] - x) - 0.5)
                 pins = i.connection
                 new_pins.append(Pin(location[0], location[1], pins[0], pins[1]))
         elif rotation == "right":
-            for i in self.pin:
+            for i in self.pins:
                 location = (x - (i.location[1] - y) - 0.5, y + (i.location[0] - x))
                 pins = i.connection
                 new_pins.append(Pin(location[0], location[1], pins[0], pins[1]))
-        self.pin = []
+        self.pins = []
         for i in new_pins:
-            self.pin.append(Pin(i.location[0], i.location[1], i.connection[0], i.connection[1]))
-        new_pins = []
+            self.pins.append(Pin(i.location[0], i.location[1], i.connection[0], i.connection[1]))
 
     def paint_element(self, image, grid):
         """
@@ -317,7 +322,7 @@ class Component:
             y_end = (y + h / 2) * grid
         position = (x_start, y_start, x_end, y_end)
         image_draw.rounded_rectangle(xy=position, radius=1, fill=(255, 255, 0), outline="red")
-        for i in self.pin:
+        for i in self.pins:
             i.paint_pin(image_draw, grid)
 
     def append_pins(self, locations):
@@ -326,6 +331,7 @@ class Component:
         :param locations: содержит все необходимые данные для описания пина.
         """
         num = -1
+        self.pins.clear()
         for i in locations:
             num += 1
             if len(i) != 0:
@@ -374,7 +380,7 @@ class Component:
                     new_pin = Pin(x_pin, y_pin, connection[i][0], connection[i][1])
                 else:
                     new_pin = Pin(x_pin, y_pin)
-                self.pin.append(new_pin)
+                self.pins.append(new_pin)
 
 
 class Pin:

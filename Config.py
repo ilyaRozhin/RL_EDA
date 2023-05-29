@@ -85,9 +85,9 @@ def init_configuration_dict():
                                           [el_dict["resistor1Om"], 50, 10, "left",
                                            [[], [], [("A28", "out")], [("A38", "in")]]]
                                           ], "config3": [
-            [el_dict["resistor1Om"], 60, 30, "", [[], [], [("A1", "in")], [("A4", "in")], []]],
-            [el_dict["resistor1Om"], 10, 5, "left", [[], [], [("A1", "out")], [], []]],
-            [el_dict["resistor1Om"], 5, 40, "", [[], [], [("A2", "in")], [], [("A4", "out")]]],
-            [el_dict["resistor1Om"], 30, 30, "left", [[], [], [("A2", "out")], [], []]]]
+            [el_dict["ground"], 0, 5, "right", [[], [], [("A1", "in")], [], []]],
+            [el_dict["ground"], 5, 0, "left", [[], [], [("A1", "out")], [], []]],
+            [el_dict["ground"], 5, 5, "right", [[], [], [("A2", "in")], [], []]],
+            [el_dict["ground"], 2, 2, "left", [[], [], [("A2", "out")], [], []]]]
                               }
     return configs
