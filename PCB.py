@@ -205,19 +205,13 @@ class Board:
                 if i.a == j.a and j.b == i.b and (x_in_i >= x_in_j >= x_out_i or x_out_i >= x_in_j >= x_in_i):
                     if y_in_i >= y_in_j >= y_out_i or y_out_i >= y_in_j >= y_in_i:
                         intersections += 1
-                        #print("Intersections:", i.in_pin.connection[0], j.in_pin.connection[0])
-                        #print("Linear Function:", x_inter, y_inter)
                 else:
-                    if i.a - j.a == 0:
-                        x_inter = 0
-                    else:
+                    if i.a - j.a != 0:
                         x_inter = (j.b - i.b)/(i.a - j.a)
-                    y_inter = j.a * x_inter + j.b
-                    if (x_in_i >= x_inter >= x_out_i or x_out_i >= x_inter >= x_in_i) and (x_in_j >= x_inter >= x_out_j or x_out_j >= x_inter >= x_in_j):
-                        if (y_in_i >= y_inter >= y_out_i or y_out_i >= y_inter >= y_in_i) and (y_in_j >= y_inter >= y_out_j or y_out_j >= y_inter >= y_in_j):
-                            intersections += 1
-                            #print("Intersections:", i.in_pin.connection[0], j.in_pin.connection[0])
-                            #print("Linear Function:", x_inter, y_inter)
+                        y_inter = j.a * x_inter + j.b
+                        if (x_in_i >= x_inter >= x_out_i or x_out_i >= x_inter >= x_in_i) and (x_in_j >= x_inter >= x_out_j or x_out_j >= x_inter >= x_in_j):
+                            if (y_in_i >= y_inter >= y_out_i or y_out_i >= y_inter >= y_in_i) and (y_in_j >= y_inter >= y_out_j or y_out_j >= y_inter >= y_in_j):
+                                intersections += 1
         functions.clear()
         return intersections
 
@@ -227,10 +221,13 @@ class Board:
         :return: количество вышедших за пределы платы элементов.
         """
         outs = 0
+        w_board = self.width
+        h_board = self.height
+        grid = self.gridDivisionSize
         for i in self.elements:
-            if i.x_c + i.w/2 >= math.floor(self.width/self.gridDivisionSize) or i.x_c - i.w/2 <= 0:
+            if i.x_c + i.w/2 >= math.floor(w_board/grid) or i.x_c - i.w/2 <= 0:
                 outs += 1
-            if i.y_c + i.h/2 >= math.floor(self.height/self.gridDivisionSize) or i.y_c - i.h/2 <= 0:
+            if i.y_c + i.h/2 >= math.floor(h_board/grid) or i.y_c - i.h/2 <= 0:
                 outs += 1
         return outs
 
@@ -239,7 +236,6 @@ class Board:
         design_error создает значение ошибки проектирования платы.
         :return: значение ошибки.
         """
-        print("Errors:", self.check_wires_overlays(), self.check_overlays(),  self.check_out_of_bounds())
         result = self.check_wires_overlays() + self.check_overlays() + self.check_out_of_bounds()
         return result
 
@@ -286,17 +282,23 @@ class Component:
         y = self.y_c
         if rotation == "left":
             for i in self.pins:
-                location = (x + (i.location[1] - y), y - (i.location[0] - x) - 0.5)
+                x_new = i.location[0]
+                y_new = i.location[1]
+                location = (x + (y_new - y), y - (x_new - x) - 0.5)
                 pins = i.connection
                 new_pins.append(Pin(location[0], location[1], pins[0], pins[1]))
         elif rotation == "right":
             for i in self.pins:
-                location = (x - (i.location[1] - y) - 0.5, y + (i.location[0] - x))
+                x_new = i.location[0]
+                y_new = i.location[1]
+                location = (x - (y_new - y) - 0.5, y + (x_new - x))
                 pins = i.connection
                 new_pins.append(Pin(location[0], location[1], pins[0], pins[1]))
         self.pins = []
         for i in new_pins:
-            self.pins.append(Pin(i.location[0], i.location[1], i.connection[0], i.connection[1]))
+            x_new = i.location[0]
+            y_new = i.location[1]
+            self.pins.append(Pin(x_new, y_new, i.connection[0], i.connection[1]))
         buffer = self.h
         self.h = self.w
         self.w = buffer
