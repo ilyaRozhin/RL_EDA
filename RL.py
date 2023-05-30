@@ -65,6 +65,7 @@ class Agent:
         :param board: печатная плата.
         :param config: конфигурация печатной платы.
         :param epsilon: мера исследования.
+        :param work_mode: один из двух вариантов хранения состояний. False - одна матрица состояний. True - для каждого своя.
         """
         h = board.height
         w = board.width
@@ -283,12 +284,13 @@ class Agent:
             reward = beta * self.environment.location_density() + alpha / self.environment.HPWL()
         return reward - 10 * self.environment.design_error()
 
-    def transition(self, alpha, beta, gamma, full_on):
+    def transition(self, alpha, beta, gamma, full_on, create_gif):
         """
         transition отвечает за обновление конфигурации платы, на основании вырабатываемой стратегии.
         """
         old_mass = []
         num_locations = len(self.locations)
+        last_error = self.environment.design_error()
         for n in range(0, num_locations):
             x = self.locations[n][0]
             y = self.locations[n][1]
@@ -299,13 +301,15 @@ class Agent:
             x, y = self.action_moving(action, old_location, 1, n)
             self.element_states[n][x][y].in_this_state = True
             self.rebuild_board(self.locations)
-            design_errors = self.environment.design_error()
+            design_errors = last_error - self.environment.design_error()
             if not full_on:
                 self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
-                self.element_states[n][x][y].reward -= design_errors*10
+                self.element_states[n][x][y].reward -= abs(design_errors)*10
                 new_state = self.element_states[n][x][y]
                 self.element_states[n][old_location[0]][old_location[1]].expected_sarsa(0.9, gamma, new_state)
-            self.image_state()
+            if create_gif:
+                self.image_state()
+            last_error = self.environment.design_error()
         if full_on:
             reward = self.full_reward(alpha, beta)
             for n in range(0, num_locations):
@@ -319,16 +323,17 @@ class Agent:
             for n in range(0, len(self.locations)):
                 x = self.locations[n][0]
                 y = self.locations[n][1]
-                self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
-                reward += self.element_states[n][x][y].reward - design_errors*10
+                #self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
+                reward += self.element_states[n][x][y].reward #- abs(design_errors)*10
         self.massRewards.append(reward)
 
-    def experimental_transition(self, alpha, beta, gamma, full_on):
+    def experimental_transition(self, alpha, beta, gamma, full_on, create_gif):
         """
         experimental_transition экспериментальный регулятор переходов.
         """
         old_mass = []
         num_locations = len(self.locations)
+        last_error = self.environment.design_error()
         for n in range(0, num_locations):
             x = self.locations[n][0]
             y = self.locations[n][1]
@@ -339,13 +344,15 @@ class Agent:
             x, y = self.action_moving(action, old_location, 1, n)
             self.element_states[x][y].in_this_state = True
             self.rebuild_board(self.locations)
-            design_errors = self.environment.design_error()
+            design_errors = last_error - self.environment.design_error()
             if not full_on:
                 self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
-                self.element_states[x][y].reward -= design_errors*10
+                self.element_states[x][y].reward -= abs(design_errors)*10
                 new_state = self.element_states[x][y]
-                self.element_states[old_location[0]][old_location[1]].expected_sarsa(2, gamma, new_state)
-            self.image_state()
+                self.element_states[old_location[0]][old_location[1]].expected_sarsa(0.9, gamma, new_state)
+            if create_gif:
+                self.image_state()
+            last_error = self.environment.design_error()
         if full_on:
             reward = self.full_reward(alpha, beta)
             for n in range(0, num_locations):
@@ -359,8 +366,8 @@ class Agent:
             for n in range(0, len(self.locations)):
                 x = self.locations[n][0]
                 y = self.locations[n][1]
-                self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
-                reward += self.element_states[x][y].reward - design_errors*10
+                #self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
+                reward += self.element_states[x][y].reward #- design_errors*10
         self.massRewards.append(reward)
 
     def launch(self, count_iter, create_gif, full_on):
@@ -372,17 +379,17 @@ class Agent:
         if self.work_mode:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.transition(self.alpha, self.beta, 0.25, full_on)
+                self.transition(self.alpha, self.beta, 0.25, full_on, create_gif)
         else:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.experimental_transition(self.alpha, self.beta, 0.25, full_on)
-        ImageShow.show(self.images[0])
-        ImageShow.show(self.images[len(self.images)-1])
+                self.experimental_transition(self.alpha, self.beta, 0.25, full_on, create_gif)
         print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
         if create_gif:
             self.images[0].save('pcb_result.gif', save_all=True, append_images=self.images[1:], optimize=True,
                                 duration=0.000000001, loop=0)
+            ImageShow.show(self.images[0])
+            ImageShow.show(self.images[len(self.images) - 1])
 
 
 if __name__ == '__main__':
@@ -393,7 +400,7 @@ if __name__ == '__main__':
     a = Agent(new_board, config_dict["config2"], 0.1, 2, 1, True)
     #ImageShow.show(a.images[0])
     #a.environment.design_error()
-    count_of_iter = 20000
+    count_of_iter = 2000
     start = datetime.now()
     a.launch(count_of_iter, False, True)
     print(datetime.now() - start)
