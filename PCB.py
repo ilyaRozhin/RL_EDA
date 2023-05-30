@@ -240,7 +240,7 @@ class Board:
         :return: значение ошибки.
         """
         print("Errors:", self.check_wires_overlays(), self.check_overlays(),  self.check_out_of_bounds())
-        result = self.check_wires_overlays() + self.check_overlays()*5 + self.check_out_of_bounds()*10
+        result = self.check_wires_overlays() + self.check_overlays() + self.check_out_of_bounds()
         return result
 
     def __del__(self):

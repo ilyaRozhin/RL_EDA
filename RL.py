@@ -59,7 +59,7 @@ class Agent:
     """
     Agent класс предназначеный для интерпретации агента системы.
     """
-    def __init__(self, board, config, epsilon, alpha, beta, work_mode=True):
+    def __init__(self, board, config, epsilon, alpha, beta, gamma, alpha_sarsa, work_mode=True):
         """
         Конструктор создает множество состояний, по имеющейся конфигурации платы.
         :param board: печатная плата.
@@ -80,7 +80,11 @@ class Agent:
         self.epsilon = epsilon
         self.alpha = alpha
         self.beta = beta
+        self.gamma = gamma
+        self.alpha_sarsa = alpha_sarsa
         self.images = []
+        self.max_image = []
+        self.max_reward = -100000
         self.massRewards = []
         if work_mode:
             self.element_states = [[[State(j, s) for s in range(0, vertical)] for j in range(0, horizontal)] for _ in
@@ -98,7 +102,7 @@ class Agent:
         h = self.environment.height
         w = self.environment.width
         grid = self.environment.gridDivisionSize
-        len_conf = len(self.config)
+        len_conf = len(locations)
         self.environment = PCB.Board(w, h, grid)
         for s in range(0, len_conf):
             element = self.config[s][0]
@@ -115,21 +119,25 @@ class Agent:
         locations = []
         num_elements = len(self.environment.elements)
         reward = 0
+        last_error = self.environment.design_error()
         for s in range(0, num_elements):
             x = random.randint(0, len(self.element_states[s])-1)
             y = random.randint(0, len(self.element_states[s][0])-1)
             self.element_states[s][x][y].in_this_state = True
             locations.append([x, y])
+            self.rebuild_board(locations)
+            #self.element_states[s][x][y].calculate_reward(alpha, beta, self.environment)
+            #self.element_states[s][x][y].reward += self.element_states[s][x][y].reward - (self.environment.design_error() - last_error) * 10
         self.locations = locations
-        self.rebuild_board(locations)
         self.image_state()
-        num_locations = len(self.locations)
-        for s in range(0, num_locations):
-            x = self.locations[s][0]
-            y = self.locations[s][1]
-            self.element_states[s][x][y].calculate_reward(alpha, beta, self.environment)
-            reward += self.element_states[s][x][y].reward
-        self.massRewards.append(reward)
+        self.max_image.append(self.images[0])
+        #num_locations = len(self.locations)
+        #for s in range(0, num_locations):
+        #    x = self.locations[s][0]
+        #    y = self.locations[s][1]
+        #    reward += self.element_states[s][x][y].reward
+        #self.max_reward = reward
+        #self.massRewards.append(reward)
 
     def experimental_init_task(self, alpha, beta):
         """
@@ -148,13 +156,14 @@ class Agent:
         self.locations = locations
         self.rebuild_board(locations)
         self.image_state()
+        self.max_image.append(self.images[0])
         num_locations = len(self.locations)
-        for s in range(0, num_locations):
-            x = self.locations[s][0]
-            y = self.locations[s][1]
-            self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
-            reward += self.element_states[x][y].reward
-        self.massRewards.append(reward)
+        #for s in range(0, num_locations):
+        #   x = self.locations[s][0]
+        #    y = self.locations[s][1]
+        #    reward += self.element_states[x][y].reward
+        #self.max_reward = reward - 10 * self.environment.design_error()
+        #self.massRewards.append(reward - 10 * self.environment.design_error())
 
     def image_state(self):
         """
@@ -193,12 +202,14 @@ class Agent:
         if self.work_mode:
             max_rating = self.element_states[n][x][y].ratings["up"]
             for s in self.element_states[n][x][y].ratings.keys():
+                #print(self.element_states[n][x][y].ratings[s])
                 if self.element_states[n][x][y].ratings[s] > max_rating:
                     action = s
                     max_rating = self.element_states[n][x][y].ratings[s]
         else:
             max_rating = self.element_states[x][y].ratings["up"]
             for s in self.element_states[x][y].ratings.keys():
+                #print(self.element_states[x][y].ratings[s])
                 if self.element_states[x][y].ratings[s] > max_rating:
                     action = s
                     max_rating = self.element_states[x][y].ratings[s]
@@ -304,9 +315,9 @@ class Agent:
             design_errors = last_error - self.environment.design_error()
             if not full_on:
                 self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
-                self.element_states[n][x][y].reward -= abs(design_errors)*10
+                self.element_states[n][x][y].reward -= design_errors*10
                 new_state = self.element_states[n][x][y]
-                self.element_states[n][old_location[0]][old_location[1]].expected_sarsa(0.9, gamma, new_state)
+                self.element_states[n][old_location[0]][old_location[1]].expected_sarsa(self.alpha_sarsa, gamma, new_state)
             if create_gif:
                 self.image_state()
             last_error = self.environment.design_error()
@@ -317,7 +328,7 @@ class Agent:
                 y = self.locations[n][1]
                 self.element_states[n][x][y].reward = reward
                 new_state = self.element_states[n][x][y]
-                self.element_states[n][old_mass[n][0]][old_mass[n][1]].expected_sarsa(0.9, gamma, new_state)
+                self.element_states[n][old_mass[n][0]][old_mass[n][1]].expected_sarsa(self.alpha_sarsa, gamma, new_state)
         else:
             reward = 0
             for n in range(0, len(self.locations)):
@@ -325,6 +336,11 @@ class Agent:
                 y = self.locations[n][1]
                 #self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
                 reward += self.element_states[n][x][y].reward #- abs(design_errors)*10
+        if self.max_reward < reward:
+            self.max_reward = reward
+            if self.environment.design_error() == 0:
+                self.max_image.clear()
+                self.max_image.append(self.environment.show_board())
         self.massRewards.append(reward)
 
     def experimental_transition(self, alpha, beta, gamma, full_on, create_gif):
@@ -347,9 +363,9 @@ class Agent:
             design_errors = last_error - self.environment.design_error()
             if not full_on:
                 self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
-                self.element_states[x][y].reward -= abs(design_errors)*10
+                self.element_states[x][y].reward -= design_errors * 10
                 new_state = self.element_states[x][y]
-                self.element_states[old_location[0]][old_location[1]].expected_sarsa(0.9, gamma, new_state)
+                self.element_states[old_location[0]][old_location[1]].expected_sarsa(self.alpha_sarsa, gamma, new_state)
             if create_gif:
                 self.image_state()
             last_error = self.environment.design_error()
@@ -360,14 +376,19 @@ class Agent:
                 y = self.locations[n][1]
                 self.element_states[x][y].reward = reward
                 new_state = self.element_states[x][y]
-                self.element_states[old_mass[n][0]][old_mass[n][1]].expected_sarsa(2, gamma, new_state)
+                self.element_states[old_mass[n][0]][old_mass[n][1]].expected_sarsa(self.alpha_sarsa, gamma, new_state)
         else:
             reward = 0
             for n in range(0, len(self.locations)):
                 x = self.locations[n][0]
                 y = self.locations[n][1]
                 #self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
-                reward += self.element_states[x][y].reward #- design_errors*10
+                reward += self.element_states[x][y].reward - design_errors * 10
+        if self.max_reward < reward and self.environment.design_error() == 0:
+            self.max_reward = reward
+            if self.environment.design_error() == 0:
+                self.max_image.clear()
+                self.max_image.append(self.environment.show_board())
         self.massRewards.append(reward)
 
     def launch(self, count_iter, create_gif, full_on):
@@ -379,11 +400,11 @@ class Agent:
         if self.work_mode:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.transition(self.alpha, self.beta, 0.25, full_on, create_gif)
+                self.transition(self.alpha, self.beta, self.gamma, full_on, create_gif)
         else:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.experimental_transition(self.alpha, self.beta, 0.25, full_on, create_gif)
+                self.experimental_transition(self.alpha, self.beta,  self.gamma, full_on, create_gif)
         print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
         if create_gif:
             self.images[0].save('pcb_result.gif', save_all=True, append_images=self.images[1:], optimize=True,
@@ -394,19 +415,22 @@ class Agent:
 
 if __name__ == '__main__':
     config_dict = Config.init_configuration_dict()
-    new_board = PCB.Board(400, 400, 10)
-    for i in config_dict["config2"]:
+    new_board = PCB.Board(100, 100, 10)
+    config_name = "config3"
+    work_mode = True
+    for i in config_dict[config_name]:
         new_board.append_element(i[0], i[1], i[2], i[3], i[4])
-    a = Agent(new_board, config_dict["config2"], 0.1, 2, 1, True)
-    #ImageShow.show(a.images[0])
-    #a.environment.design_error()
-    count_of_iter = 2000
+    a = Agent(new_board, config_dict[config_name], 0.05, 1, 1, 0.3, 1, work_mode)
+    count_of_iter = 100000
     start = datetime.now()
     a.launch(count_of_iter, False, True)
     print(datetime.now() - start)
-    plt.plot([i for i in range(0, count_of_iter+1)], a.massRewards)
+    print("Maximal reward:", a.max_reward)
+    a.images[0].save("results/StartImage_" + config_name + "&work=" + str(work_mode) + ".png")
+    if a.images[0] != a.max_image[0]:
+        a.max_image[0].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
+    plt.plot([i for i in range(0, count_of_iter)], a.massRewards)
     plt.title("Value of Rewards")
     plt.xlabel("Count of runs")
     plt.ylabel("Value of Total Reward")
     plt.show()
-
