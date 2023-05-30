@@ -148,18 +148,18 @@ class Board:
         """
         overlays = 0
         checked = []
-        for s in self.elements:
-            for z in self.elements:
-                if s != z and z not in checked:
-                    delta_x = abs(s.x_c - z.x_c)
-                    delta_y = abs(s.y_c - z.y_c)
-                    union_width = (s.w + z.w)/2
-                    union_height = (s.h + z.h)/2
-                    if delta_x == 0 and delta_y == 0 or delta_x == 0 and delta_y < union_height or \
-                            delta_x < union_width and delta_y == 0 or \
-                            delta_x < union_width and delta_y < union_height:
+        for s in range(0, len(self.elements)):
+            for z in range(s, len(self.elements)):
+                if self.elements[s] != self.elements[z] and (self.elements[z] not in checked or self.elements[s] not in checked):
+                    delta_x = abs(self.elements[s].x_c - self.elements[z].x_c)
+                    delta_y = abs(self.elements[s].y_c - self.elements[z].y_c)
+                    union_width = (self.elements[s].w + self.elements[z].w)/2
+                    union_height = (self.elements[s].h + self.elements[z].h)/2
+                    if delta_x == 0 and delta_y == 0 or delta_x == 0 and delta_y <= union_height or \
+                            delta_x <= union_width and delta_y == 0 or \
+                            delta_x <= union_width and delta_y <= union_height:
                         overlays += 1
-                        checked.append(z)
+                        checked.append(self.elements[z])
         return overlays
 
     def check_wires_overlays(self):
@@ -203,17 +203,21 @@ class Board:
                 y_in_j = j.in_pin.location[1]
                 y_out_j = j.out_pin.location[1]
                 if i.a == j.a and j.b == i.b and (x_in_i >= x_in_j >= x_out_i or x_out_i >= x_in_j >= x_in_i):
-                    intersections += 1
-                elif i.a == j.a and j.b != i.b:
-                    continue
+                    if y_in_i >= y_in_j >= y_out_i or y_out_i >= y_in_j >= y_in_i:
+                        intersections += 1
+                        #print("Intersections:", i.in_pin.connection[0], j.in_pin.connection[0])
+                        #print("Linear Function:", x_inter, y_inter)
                 else:
                     if i.a - j.a == 0:
                         x_inter = 0
                     else:
                         x_inter = (j.b - i.b)/(i.a - j.a)
                     y_inter = j.a * x_inter + j.b
-                    if x_in_i >= x_inter >= x_out_i or x_out_i >= x_inter >= x_in_i:
-                        intersections += 1
+                    if (x_in_i >= x_inter >= x_out_i or x_out_i >= x_inter >= x_in_i) and (x_in_j >= x_inter >= x_out_j or x_out_j >= x_inter >= x_in_j):
+                        if (y_in_i >= y_inter >= y_out_i or y_out_i >= y_inter >= y_in_i) and (y_in_j >= y_inter >= y_out_j or y_out_j >= y_inter >= y_in_j):
+                            intersections += 1
+                            #print("Intersections:", i.in_pin.connection[0], j.in_pin.connection[0])
+                            #print("Linear Function:", x_inter, y_inter)
         functions.clear()
         return intersections
 
@@ -224,9 +228,9 @@ class Board:
         """
         outs = 0
         for i in self.elements:
-            if i.x_c + i.w/2 > self.width or i.x_c - i.w/2 < 0:
+            if i.x_c + i.w/2 >= math.floor(self.width/self.gridDivisionSize) or i.x_c - i.w/2 <= 0:
                 outs += 1
-            if i.y_c + i.h/2 > self.height or i.y_c - i.h/2 < 0:
+            if i.y_c + i.h/2 >= math.floor(self.height/self.gridDivisionSize) or i.y_c - i.h/2 <= 0:
                 outs += 1
         return outs
 
@@ -293,6 +297,9 @@ class Component:
         self.pins = []
         for i in new_pins:
             self.pins.append(Pin(i.location[0], i.location[1], i.connection[0], i.connection[1]))
+        buffer = self.h
+        self.h = self.w
+        self.w = buffer
 
     def paint_element(self, image, grid):
         """
@@ -407,3 +414,4 @@ class Pin:
         x_end = (x + 0.5) * grid
         y_end = (y + 0.5) * grid
         image.ellipse([x_start, y_start, x_end, y_end], fill=(255, 102, 0), outline="red")
+        image.text((x_start, y_start), text=self.connection[0], fill=(255, 255, 255))

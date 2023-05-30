@@ -36,6 +36,7 @@ class State:
             self.reward = beta * board.location_density()
         else:
             self.reward = beta * board.location_density() + alpha / board.HPWL()
+        print("Reward:", board.HPWL(),board.location_density())
 
     def expected_sarsa(self, alpha, gamma, new_state):
         """
@@ -386,10 +387,10 @@ class Agent:
 
 if __name__ == '__main__':
     config_dict = Config.init_configuration_dict()
-    new_board = PCB.Board(200, 200, 4)
+    new_board = PCB.Board(400, 400, 10)
     for i in config_dict["config2"]:
         new_board.append_element(i[0], i[1], i[2], i[3], i[4])
-    a = Agent(new_board, config_dict["config2"], 0.04, 2, 1, True)
+    a = Agent(new_board, config_dict["config2"], 0.1, 2, 1, True)
     #ImageShow.show(a.images[0])
     #a.environment.design_error()
     count_of_iter = 20000
