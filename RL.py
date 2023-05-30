@@ -2,7 +2,7 @@ import PCB
 import math
 import random
 import Config
-from PIL import ImageShow
+from PIL import ImageShow, Image
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -336,9 +336,9 @@ class Agent:
                 y = self.locations[n][1]
                 #self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
                 reward += self.element_states[n][x][y].reward #- abs(design_errors)*10
-        if self.max_reward < reward:
+        if self.environment.design_error() == 0:
             self.max_reward = reward
-            if self.environment.design_error() == 0:
+            if self.max_reward < reward:
                 self.max_image.clear()
                 self.max_image.append(self.environment.show_board())
         self.massRewards.append(reward)
@@ -384,33 +384,43 @@ class Agent:
                 y = self.locations[n][1]
                 #self.element_states[x][y].calculate_reward(alpha, beta, self.environment)
                 reward += self.element_states[x][y].reward - design_errors * 10
-        if self.max_reward < reward and self.environment.design_error() == 0:
+        if self.environment.design_error() == 0:
             self.max_reward = reward
-            if self.environment.design_error() == 0:
+            if self.max_reward < reward:
                 self.max_image.clear()
                 self.max_image.append(self.environment.show_board())
         self.massRewards.append(reward)
 
-    def launch(self, count_iter, create_gif, full_on):
+    def launch(self, count_iter, count_episodes, create_gif, full_on):
         """
         launch отвечает за запуск процесса обучения.
         :param count_iter: количество временных отрезков для обучения.
         :param create_gif: создавать ли гифку или нет.
         """
-        if self.work_mode:
-            for s in range(0, count_iter):
-                print("*******************", s, "*******************")
-                self.transition(self.alpha, self.beta, self.gamma, full_on, create_gif)
-        else:
-            for s in range(0, count_iter):
-                print("*******************", s, "*******************")
-                self.experimental_transition(self.alpha, self.beta,  self.gamma, full_on, create_gif)
-        print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
-        if create_gif:
-            self.images[0].save('pcb_result.gif', save_all=True, append_images=self.images[1:], optimize=True,
-                                duration=0.000000001, loop=0)
-            ImageShow.show(self.images[0])
-            ImageShow.show(self.images[len(self.images) - 1])
+        max_mass_images = []
+        max_mass_rewards = []
+        for n in range(0, count_episodes):
+            if self.work_mode:
+                for s in range(0, count_iter):
+                    print("*******************", s, "*******************")
+                    self.transition(self.alpha, self.beta, self.gamma, full_on, create_gif)
+            else:
+                for s in range(0, count_iter):
+                    print("*******************", s, "*******************")
+                    self.experimental_transition(self.alpha, self.beta,  self.gamma, full_on, create_gif)
+            print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
+            if create_gif:
+                self.images[0].save('pcb_result.gif', save_all=True, append_images=self.images[1:], optimize=True,
+                                    duration=0.000000001, loop=0)
+                ImageShow.show(self.images[0])
+                ImageShow.show(self.images[len(self.images) - 1])
+            max_mass_rewards.append(self.max_reward)
+            max_mass_images.append(self.max_image[0])
+            if self.work_mode:
+                self.init_task(self.alpha, self.beta)
+            else:
+                self.experimental_init_task(self.alpha, self.beta)
+        return max_mass_images, max_mass_rewards
 
 
 if __name__ == '__main__':
@@ -421,15 +431,15 @@ if __name__ == '__main__':
     for i in config_dict[config_name]:
         new_board.append_element(i[0], i[1], i[2], i[3], i[4])
     a = Agent(new_board, config_dict[config_name], 0.05, 1, 1, 0.3, 1, work_mode)
-    count_of_iter = 100000
+    count_of_iter = 100
+    count_of_episodes = 13
     start = datetime.now()
-    a.launch(count_of_iter, False, True)
+    max_images, max_rewards = a.launch(count_of_iter, count_of_episodes, False, True)
     print(datetime.now() - start)
-    print("Maximal reward:", a.max_reward)
     a.images[0].save("results/StartImage_" + config_name + "&work=" + str(work_mode) + ".png")
-    if a.images[0] != a.max_image[0]:
-        a.max_image[0].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
-    plt.plot([i for i in range(0, count_of_iter)], a.massRewards)
+    if a.images[0] != max_images[0]:
+        max_images[max_rewards.index(max(max_rewards))].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
+    plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
     plt.title("Value of Rewards")
     plt.xlabel("Count of runs")
     plt.ylabel("Value of Total Reward")
