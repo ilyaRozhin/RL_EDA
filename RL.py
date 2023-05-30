@@ -46,13 +46,12 @@ class State:
         """
         exp_val = 0
         sum_choice = 0
-        rate = self.ratings[self.chosen_action]
         for j in new_state.counter_action.keys():
             sum_choice += new_state.counter_action[j]
         for j in new_state.ratings.keys():
             if sum_choice != 0:
                 exp_val += new_state.counter_action[j] * new_state.ratings[j] / sum_choice
-        rate += alpha * (new_state.reward + gamma * exp_val - rate)
+        self.ratings[self.chosen_action] += alpha * (new_state.reward + gamma * exp_val - self.ratings[self.chosen_action])
 
 
 class Agent:
@@ -304,7 +303,7 @@ class Agent:
                 self.element_states[n][x][y].calculate_reward(alpha, beta, self.environment)
                 self.element_states[n][x][y].reward -= design_errors*10
                 new_state = self.element_states[n][x][y]
-                self.element_states[n][old_location[0]][old_location[1]].expected_sarsa(2, gamma, new_state)
+                self.element_states[n][old_location[0]][old_location[1]].expected_sarsa(0.9, gamma, new_state)
             self.image_state()
         if full_on:
             reward = self.full_reward(alpha, beta)
@@ -313,7 +312,7 @@ class Agent:
                 y = self.locations[n][1]
                 self.element_states[n][x][y].reward = reward
                 new_state = self.element_states[n][x][y]
-                self.element_states[n][old_mass[n][0]][old_mass[n][1]].expected_sarsa(2, gamma, new_state)
+                self.element_states[n][old_mass[n][0]][old_mass[n][1]].expected_sarsa(0.9, gamma, new_state)
         else:
             reward = 0
             for n in range(0, len(self.locations)):
@@ -372,11 +371,11 @@ class Agent:
         if self.work_mode:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.transition(self.alpha, self.beta, 0.2, full_on)
+                self.transition(self.alpha, self.beta, 0.25, full_on)
         else:
             for s in range(0, count_iter):
                 print("*******************", s, "*******************")
-                self.experimental_transition(self.alpha, self.beta, 0.2, full_on)
+                self.experimental_transition(self.alpha, self.beta, 0.25, full_on)
         ImageShow.show(self.images[0])
         ImageShow.show(self.images[len(self.images)-1])
         print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
@@ -390,12 +389,12 @@ if __name__ == '__main__':
     new_board = PCB.Board(200, 200, 4)
     for i in config_dict["config2"]:
         new_board.append_element(i[0], i[1], i[2], i[3], i[4])
-    a = Agent(new_board, config_dict["config2"], 0.5, 0.9, 0.6, False)
+    a = Agent(new_board, config_dict["config2"], 0.04, 2, 1, True)
     #ImageShow.show(a.images[0])
     #a.environment.design_error()
-    count_of_iter = 80
+    count_of_iter = 20000
     start = datetime.now()
-    a.launch(count_of_iter, True, False)
+    a.launch(count_of_iter, False, True)
     print(datetime.now() - start)
     plt.plot([i for i in range(0, count_of_iter+1)], a.massRewards)
     plt.title("Value of Rewards")
