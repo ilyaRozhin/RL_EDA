@@ -34,20 +34,36 @@ if __name__ == '__main__':
         if i != "launchRL.py":
             param.append(i)
     try:
-        name_config = param[1]
-        h_board = param[2]
-        w_board = param[3]
-        grid_size = param[4]
-        alpha = param[5]
-        beta = param[6]
-        gamma = param[7]
-        alpha_sarsa = param[8]
-        work_mode = param[9]
-        full_on = param[10]
-        count_of_iter = param[11]
-        count_of_episodes = param[12]
-        epsilon = param[13]
-        main_function(name_config, int(h_board), int(w_board), int(grid_size), float(alpha),  float(beta),  float(gamma),  float(alpha_sarsa), bool(work_mode), bool(full_on),
+        if "launchRL.py" in param[0]:
+            name_config = param[1]
+            h_board = param[2]
+            w_board = param[3]
+            grid_size = param[4]
+            alpha = param[5]
+            beta = param[6]
+            gamma = param[7]
+            alpha_sarsa = param[8]
+            work_mode = param[9]
+            full_on = param[10]
+            count_of_iter = param[11]
+            count_of_episodes = param[12]
+            epsilon = param[13]
+        else:
+            name_config = param[0]
+            h_board = param[1]
+            w_board = param[2]
+            grid_size = param[3]
+            alpha = param[4]
+            beta = param[5]
+            gamma = param[6]
+            alpha_sarsa = param[7]
+            work_mode = param[8]
+            full_on = param[9]
+            count_of_iter = param[10]
+            count_of_episodes = param[11]
+            epsilon = param[12]
+        main_function(name_config, int(h_board), int(w_board), int(grid_size), float(alpha), float(beta), float(gamma),
+                      float(alpha_sarsa), bool(work_mode), bool(full_on),
                       int(count_of_iter), int(count_of_episodes), float(epsilon))
     except IndexError:
         print("Не все данные введены кооректно, попробуйте еще раз!!!")
