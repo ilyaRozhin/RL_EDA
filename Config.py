@@ -59,7 +59,7 @@ def init_configuration_dict():
                               "config2": [[el_dict["K176TM2"], 10, 60, "", [[], [("A1", ""), ("A2", ""), ("A3", ""),
                                                                                  ("A4", ""), ("A5", "in"), ("A6", ""),
                                                                                  ("A7", "in")], [], []]],
-                                          [el_dict["ADUC812BSZ"], 50, 30, "right",
+                                          [el_dict["ADUC812BSZ"], 50, 30, "",
                                            [[("A1", "out"), ("A2", ""), ("A3", ""),
                                              ("A4", ""), ("A5", "out"), ("A6", ""), ("A7", "out"),
                                              ("A8", ""), ("A9", ""), ("A10", ""),
@@ -92,6 +92,12 @@ def init_configuration_dict():
             [el_dict["ground"], 1, 1, "right", [[], [], [("A3", "in")], [], []]],
             [el_dict["ground"], 2, 1, "left", [[], [], [("A3", "out")], [], []]],
             [el_dict["ground"], 2, 3, "right", [[], [], [("A4", "in")], [], []]],
-            [el_dict["ground"], 1, 4, "left", [[], [], [("A4", "out")], [], []]]]
+            [el_dict["ground"], 1, 4, "left", [[], [], [("A4", "out")], [], []]]],
+                              "config4": [
+                                  [el_dict["ground"], 0, 5, "right", [[], [], [("A1", "in")], [], []]],
+                                  [el_dict["ground"], 5, 0, "left", [[], [], [("A1", "out")], [], []]],
+                                  [el_dict["ground"], 5, 5, "right", [[], [], [("A2", "in")], [], []]],
+                                  [el_dict["ground"], 2, 2, "left", [[], [], [("A2", "out")], [], []]]]
+
                               }
     return configs

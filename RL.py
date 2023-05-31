@@ -1,10 +1,6 @@
 import PCB
 import math
 import random
-import Config
-from PIL import ImageShow, Image
-import matplotlib.pyplot as plt
-from datetime import datetime
 
 
 class State:
@@ -395,9 +391,8 @@ class Agent:
                 for s in range(0, count_iter):
                     print("*******************", s, "*******************")
                     self.experimental_transition(self.alpha, self.beta,  self.gamma, full_on, create_gif)
-            print("FirstReward:", self.massRewards[0], "EndReward:", self.massRewards[len(self.massRewards)-1])
             if create_gif:
-                self.images[0].save('pcb_result.gif', save_all=True, append_images=self.images[1:], optimize=True,
+                self.images[0].save('dynamic.gif', save_all=True, append_images=self.images[1:], optimize=True,
                                     duration=0.000000001, loop=0)
             if self.max_reward > 0:
                 max_mass_images.append(self.max_image[0])
@@ -410,31 +405,3 @@ class Agent:
             else:
                 self.experimental_init_task(self.alpha, self.beta)
         return max_mass_images, max_mass_rewards
-
-
-if __name__ == '__main__':
-    config_dict = Config.init_configuration_dict()
-    new_board = PCB.Board(100, 100, 10)
-    config_name = "config3"
-    work_mode = True
-    for i in config_dict[config_name]:
-        new_board.append_element(i[0], i[1], i[2], i[3], i[4])
-    a = Agent(new_board, config_dict[config_name], 0.05, 1, 1, 0.3, 1, work_mode)
-    count_of_iter = 100
-    count_of_episodes = 13
-    start = datetime.now()
-    a.images[0].save("results/StartImage_" + config_name + "&work=" + str(work_mode) + ".png")
-    max_images, max_rewards = a.launch(count_of_iter, count_of_episodes, False, True)
-    print(len(max_images))
-    print(datetime.now() - start)
-    print(max_rewards)
-    if len(max_rewards):
-        index_max_reward = max_rewards.index(max(max_rewards))
-        print(index_max_reward)
-        if len(max_images):
-            max_images[index_max_reward].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
-        plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
-        plt.title("Value of Rewards")
-        plt.xlabel("Count of runs")
-        plt.ylabel("Value of Total Reward")
-        plt.show()
