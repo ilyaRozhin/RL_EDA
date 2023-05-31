@@ -33,21 +33,37 @@ if __name__ == '__main__':
     for i in sys.argv:
         if i != "launchRL.py":
             param.append(i)
+    print(param)
     try:
         if "launchRL.py" in param[0]:
-            name_config = param[1]
-            h_board = param[2]
-            w_board = param[3]
-            grid_size = param[4]
-            alpha = param[5]
-            beta = param[6]
-            gamma = param[7]
-            alpha_sarsa = param[8]
-            work_mode = param[9]
-            full_on = param[10]
-            count_of_iter = param[11]
-            count_of_episodes = param[12]
-            epsilon = param[13]
+            if "python3" in param[1]:
+                name_config = param[2]
+                h_board = param[3]
+                w_board = param[4]
+                grid_size = param[5]
+                alpha = param[6]
+                beta = param[7]
+                gamma = param[8]
+                alpha_sarsa = param[9]
+                work_mode = param[10]
+                full_on = param[11]
+                count_of_iter = param[12]
+                count_of_episodes = param[13]
+                epsilon = param[14]
+            else:
+                name_config = param[1]
+                h_board = param[2]
+                w_board = param[3]
+                grid_size = param[4]
+                alpha = param[5]
+                beta = param[6]
+                gamma = param[7]
+                alpha_sarsa = param[8]
+                work_mode = param[9]
+                full_on = param[10]
+                count_of_iter = param[11]
+                count_of_episodes = param[12]
+                epsilon = param[13]
         else:
             name_config = param[0]
             h_board = param[1]

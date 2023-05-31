@@ -416,4 +416,5 @@ class Pin:
         x_end = (x + 0.5) * grid
         y_end = (y + 0.5) * grid
         image.ellipse([x_start, y_start, x_end, y_end], fill=(255, 102, 0), outline="red")
-        image.text((x_start, y_start), text=self.connection[0], fill=(255, 255, 255))
+        if self.connection[1] != "":
+            image.text((x_start, y_start), text=self.connection[0], fill=(255, 255, 255))
