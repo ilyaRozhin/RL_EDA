@@ -28,7 +28,7 @@
 ![Рисунок2](results/MaxImage_config3&work=True.png)
 
 **График "Value of Rewards":**
-![Рисунок3]("results/config3_values_of_rewards.png")
+![Рисунок3](results/config3_values_of_rewards.png)
 
 Новый вариант размещения и трассировки печатной платы, был спроектирован в соответствие с нормами проектирования и введенной оценочной функцией: ***alpha / HPWL + beta x Density***. Данный метод проектирования является пробным.
 
