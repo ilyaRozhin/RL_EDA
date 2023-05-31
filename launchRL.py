@@ -23,9 +23,9 @@ def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, 
             max_images[index_max_reward].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
         plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
         plt.title("Value of Rewards")
-        plt.xlabel("Count of runs")
+        plt.xlabel("Episodes")
         plt.ylabel("Max value of Total Reward")
-        plt.savefig("results/" + config_name + "_values_of_rewards.png")
+        plt.savefig("results/" + config_name + "_values_of_rewards.png", dpi = 50)
 
 
 if __name__ == '__main__':
