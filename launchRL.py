@@ -4,6 +4,7 @@ import sys
 from PCB import Board
 from RL import Agent
 from datetime import datetime
+from PIL import ImageShow
 
 
 def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, alpha_sarsa, work_mode, full_on, count_of_iter, count_of_episodes, epsilon):
@@ -33,7 +34,6 @@ if __name__ == '__main__':
     for i in sys.argv:
         if i != "launchRL.py":
             param.append(i)
-    print(param)
     try:
         if "launchRL.py" in param[0]:
             if "python3" in param[1]:
@@ -78,8 +78,6 @@ if __name__ == '__main__':
             count_of_iter = param[10]
             count_of_episodes = param[11]
             epsilon = param[12]
-        main_function(name_config, int(h_board), int(w_board), int(grid_size), float(alpha), float(beta), float(gamma),
-                      float(alpha_sarsa), bool(work_mode), bool(full_on),
-                      int(count_of_iter), int(count_of_episodes), float(epsilon))
+        main_function(name_config, int(h_board), int(w_board), int(grid_size), float(alpha), float(beta), float(gamma), float(alpha_sarsa), bool(work_mode), bool(full_on), int(count_of_iter), int(count_of_episodes), float(epsilon))
     except IndexError:
         print("Не все данные введены кооректно, попробуйте еще раз!!!")

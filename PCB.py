@@ -29,6 +29,11 @@ class Board:
         self.paint_grid()
         self.elements = []
 
+    def copy(self):
+        copy_board = Board(self.width, self.height, self.gridDivisionSize)
+        copy_board.elements = self.elements.copy()
+        return copy_board
+
     def paint_elements(self):
         """
         paint_elements добавляет к визуализации платы рисунки элементов.
