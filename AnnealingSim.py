@@ -149,7 +149,7 @@ def simulation(alpha, beta, count_iter, start_temperature, config_name, h_board,
     if len(max_images):
         max_images[0].save("results/Annealing_MaxImage_" + config_name + ".png")
     temperatures.reverse()
-    if flag_bench:
+    if not flag_bench:
         plt.plot(temperatures, energy_mass)
         plt.title("Values of Energy")
         plt.xlabel("Temperature")

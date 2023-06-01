@@ -10,10 +10,10 @@ if __name__ == '__main__':
     counter_checks = 100
     for i in range(0, counter_checks):
         start = datetime.now()
-        rl_max_reward = main_function("config3", 100, 100, 10, 0.1, 1, 0.3, 1, True, True, 1000, 10, 0.2)
+        rl_max_reward = main_function("config3", 100, 100, 10, 0.1, 1, 0.3, 1, True, True, 1000, 10, 0.2, True)
         rl_time = datetime.now() - start
         start = datetime.now()
-        as_max_energy = simulation(1, 1, 10000, 20, "config3", 100, 100, 10)
+        as_max_energy = simulation(1, 1, 10000, 20, "config3", 100, 100, 10, True)
         as_time = datetime.now() - start
         delta = as_time.total_seconds() - rl_time.total_seconds()
         delta_time_mass.append(delta)

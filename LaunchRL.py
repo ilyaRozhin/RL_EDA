@@ -25,7 +25,7 @@ def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, 
         index_max_reward = max_rewards.index(max(max_rewards))
         if len(max_images):
             max_images[index_max_reward].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
-        if flag_bench:
+        if not flag_bench:
             plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
             plt.title("Value of Rewards")
             plt.xlabel("Episodes")
