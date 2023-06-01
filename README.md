@@ -39,11 +39,11 @@
 
 **Было:**
 
-![Рисунок1](results/StartMaxConfig2.png) 
+![Рисунок4](results/StartMaxConfig2.png) 
 
 **Стало:**
 
-![Рисунок1](results/TestMaxConfig2.png)
+![Рисунок5](results/TestMaxConfig2.png)
 
 Стоит отметить, что пересечение элемента проводами в данном варианте программы доступно, так как это не влияет на правильность и возможность проведения проводов по размеченной сетке.
 ## Установка
@@ -67,7 +67,33 @@
 Пример запуска: `python3 launchRL.py config3 100 100 10 1 1 0.3 1 True True 1000 20 0.1`
 
 
+## Обновление
+Добавлен алгоритм симуляции отжига - AnnealingSim.py.
+Можно запустить с помощью команды: `python3 AnnealingSim.py alpha beta count_iter start_temperature config_name h_board w_board grid_size`
 
+### Результаты работы алгоритма симуляции отжига
+
+**Было:**
+
+![Рисунок6](results/Annealing_StartImage_config3.png)
+
+**Стало:**
+
+![Рисунок7](results/Annealing_MaxImage_config3.png)
+
+**График:**
+
+![Рисунок8](results/Annealing_config3_values_of_energy.png)
+
+### Результаты сравнения целочисленного AS алгоритма и динамического RL
+
+Средняя разница выполнения одного прогона алгоритма с 10000 итерациями для конфигурации Config3.
+
+![Рисунок9](benchmark_results/times_num=100.png)
+
+Отношение максимального вознаграждения получамого RL к максимальной энерегией в AS.
+
+![Рисунок10](benchmark_results/reward_num=100.png)
 
 
 ---

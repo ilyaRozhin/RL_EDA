@@ -7,7 +7,10 @@ from datetime import datetime
 from PIL import ImageShow
 
 
-def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, alpha_sarsa, work_mode, full_on, count_of_iter, count_of_episodes, epsilon):
+def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, alpha_sarsa, work_mode, full_on, count_of_iter, count_of_episodes, epsilon, flag_bench=False):
+    """
+    main_function - функция для запуска основного тела программы.
+    """
     config_dict = Config.init_configuration_dict()
     new_board = Board(h_board, w_board, grid_size)
     config_name = name_config
@@ -17,25 +20,28 @@ def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, 
     start = datetime.now()
     a.images[0].save("results/StartImage_" + config_name + "&work=" + str(work_mode) + ".png")
     max_images, max_rewards = a.launch(count_of_iter, count_of_episodes, False, full_on)
-    print(datetime.now() - start)
+    print("Execute Time:", datetime.now() - start)
     if len(max_rewards):
         index_max_reward = max_rewards.index(max(max_rewards))
         if len(max_images):
             max_images[index_max_reward].save("results/MaxImage_" + config_name + "&work=" + str(work_mode) + ".png")
-        plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
-        plt.title("Value of Rewards")
-        plt.xlabel("Episodes")
-        plt.ylabel("Max value of Total Reward")
-        plt.savefig("results/" + config_name + "_values_of_rewards.png", dpi = 50)
+        if flag_bench:
+            plt.plot([i for i in range(0, len(max_rewards))], max_rewards)
+            plt.title("Value of Rewards")
+            plt.xlabel("Episodes")
+            plt.ylabel("Max value of Total Reward")
+            plt.savefig("results/" + config_name + "_values_of_rewards.png", dpi = 50)
+        return max(max_rewards)
+    return 0
 
 
 if __name__ == '__main__':
     param = []
     for i in sys.argv:
-        if i != "launchRL.py":
+        if i != "LaunchRL.py":
             param.append(i)
     try:
-        if "launchRL.py" in param[0]:
+        if "LaunchRL.py" in param[0]:
             if "python3" in param[1]:
                 name_config = param[2]
                 h_board = param[3]
