@@ -1,5 +1,7 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageShow
 import math
+from numpy import sign
+import random
 
 
 class LinearFunc:
@@ -68,14 +70,14 @@ class Board:
         element_buf.append_pins(inst[2])
         self.elements.append(element_buf)
 
-    def show_board(self):
+    def show_board(self, trase_on=False):
         """
         show_board создает картинку печатной платы, со всеми
         элементами и соединениями.
         :return: Image
         """
         self.paint_elements()
-        self.wires_drawing()
+        self.wires_drawing(trase_on)
         return self.image.copy()
 
     def separate_in_out_pins(self):
@@ -93,7 +95,7 @@ class Board:
                     out_pins.append(j)
         return in_pins, out_pins
 
-    def wires_drawing(self):
+    def wires_drawing(self, trase_on = False):
         """
         wires_drawing отрисовывает провода на плате.
         """
@@ -101,6 +103,7 @@ class Board:
         grid = self.gridDivisionSize
         in_pins, out_pins = self.separate_in_out_pins()
         counter = 0
+        mass_deltas = []
         for i in in_pins:
             for j in out_pins:
                 if i.connection[0] == j.connection[0]:
@@ -108,8 +111,210 @@ class Board:
                     y_start = i.location[1]*grid+2
                     x_end = j.location[0]*grid
                     y_end = j.location[1]*grid+2
-                    draw_image.line((x_start, y_start, x_end, y_end), fill="purple", width=1)
+                    if trase_on:
+                        self.trase([i, j], mass_deltas)
+                    else:
+                        draw_image.line((x_start, y_start, x_end, y_end), fill="purple", width=1)
+                    draw_image.text((x_start, y_start), text=i.connection[0], fill=(255, 255, 255))
+                    draw_image.text((x_end, y_end), text=j.connection[0], fill=(255, 255, 255))
                     counter += 1
+
+    def init_trase(self, location, friend, draw_image, width):
+        for i in self.elements:
+            minus_delta_y = i.y_c - i.h/2 - 0.25
+            plus_delta_y = i.y_c + i.h/2 - 0.25
+            minus_delta_x = i.x_c - i.w/2 - 0.25
+            plus_delta_x = i.x_c + i.w/2 - 0.25
+            grid = self.gridDivisionSize
+            x = -1
+            y = -1
+            new_x = -1
+            new_y = -1
+            if plus_delta_x == location[0] and plus_delta_y >= location[1] >= minus_delta_y:
+                # right
+                x = (location[0] + 0.5)
+                y = (location[1] + 0.25)
+                new_x = math.ceil(location[0] + 0.5)
+                new_y = y
+                draw_image.line((x*grid, y*grid, new_x*grid, new_y*grid), fill="purple", width=width)
+                if location[1] > friend[1]:
+                    draw_image.line((new_x * grid, new_y * grid, new_x * grid, math.floor(location[1] + 0.25) * grid),
+                                    fill="purple", width=width)
+                    return False, (new_x, math.floor(location[1] + 0.25))
+                else:
+                    draw_image.line((new_x * grid, new_y * grid, new_x * grid,  math.ceil(location[1] + 0.25) * grid),
+                                    fill="purple", width=width)
+                    return False, (new_x, math.ceil(location[1] + 0.25))
+            elif minus_delta_x == location[0] and plus_delta_y >= location[1] >= minus_delta_y:
+                # left
+                x = location[0]
+                y = (location[1] + 0.25)
+                new_x = math.floor(location[0])
+                new_y = y
+                draw_image.line((x*grid, y*grid, new_x*grid, new_y*grid), fill="purple", width=width)
+                if location[1] > friend[1]:
+                    draw_image.line((new_x * grid, new_y * grid, new_x * grid, math.floor(location[1] + 0.25) * grid),
+                                    fill="purple", width=width)
+                    return False, (new_x, math.floor(location[1] + 0.25))
+                else:
+                    draw_image.line((new_x * grid, new_y * grid, new_x * grid, math.ceil(location[1] + 0.25)*grid),
+                                    fill="purple", width=width)
+                    return False, (new_x, math.ceil(location[1] + 0.25))
+            elif plus_delta_y == location[1] and plus_delta_x >= location[0] >= minus_delta_x:
+                # down
+                x = (location[0] + 0.25)
+                y = (location[1] + 0.5)
+                new_x = x
+                new_y = math.ceil(location[1] + 0.5)
+                draw_image.line((x*grid, y*grid, new_x*grid, new_y*grid), fill="purple", width=width)
+                if location[0] > friend[0]:
+                    draw_image.line((new_x * grid, new_y * grid, math.floor(location[0] + 0.25) * grid, new_y * grid),fill="purple", width=width)
+                    return False, (math.floor(location[0] + 0.25), new_y)
+                else:
+                    draw_image.line((new_x * grid, new_y * grid, math.ceil(location[0] + 0.25) * grid, new_y * grid),fill="purple", width=width)
+                    return False, (math.ceil(location[0] + 0.25), new_y)
+            elif minus_delta_y == location[1] and plus_delta_x >= location[0] >= minus_delta_x:
+                # up
+                x = (location[0] + 0.25)
+                y = location[1]
+                new_x = x
+                new_y = math.floor(location[1])
+                draw_image.line((x*grid, y*grid, new_x*grid, new_y*grid), fill="purple", width=width)
+                if location[0] > friend[0]:
+                    draw_image.line((new_x * grid, new_y * grid, math.floor(location[0] + 0.25) * grid, new_y * grid),
+                                    fill="purple", width=width)
+                    return False, (math.floor(location[0] + 0.25), new_y)
+                else:
+                    draw_image.line((new_x * grid, new_y * grid, math.ceil(location[0] + 0.25) * grid, new_y * grid),
+                                    fill="purple", width=width)
+                    return False, (math.ceil(location[0] + 0.25), new_y)
+        return True, (round(new_x), round(new_y))
+
+    def check_wires_elements(self, start):
+        x = start[0]
+        y = start[1]
+        grid = self.gridDivisionSize
+        if x <= 0 or x >= self.width/grid or y <= 0 or y >= self.height/grid:
+            print("No Bound")
+            x_new = 0
+            y_new = 0
+            if x <= 0:
+                x_new = 1 - x
+            elif x >= self.width/grid:
+                x_new = x - self.width/grid + 1
+            if y <= 0:
+                y_new = 1 - y
+            elif y >= self.height/grid:
+                y_new = y - self.height/grid + 1
+            return True, (-math.floor(x_new), -math.floor(y_new))
+        for i in self.elements:
+            x_new = 0
+            y_new = 0
+            minus_delta_y = math.floor(i.y_c * grid - i.h * grid / 2)/grid
+            plus_delta_y = math.ceil(i.y_c * grid + i.h * grid / 2)/grid
+            minus_delta_x = math.floor(i.x_c * grid - i.w * grid / 2)/grid
+            plus_delta_x = math.ceil(i.x_c * grid + i.w * grid / 2)/grid
+            if plus_delta_x >= x >= minus_delta_x and plus_delta_y >= y >= minus_delta_y:
+                if plus_delta_x - x >= x - minus_delta_x:
+                    x_new = -math.floor(x - minus_delta_x + 1)
+                else:
+                    x_new = math.floor(plus_delta_x - x + 1)
+                if plus_delta_y - y >= y - minus_delta_y:
+                    y_new = -math.floor(y - minus_delta_y + 1)
+                else:
+                    y_new = math.floor(plus_delta_y - y + 1)
+                print("Check!!! start:", start, "(width,height):", self.width/grid, self.height/grid, "widthEL:", plus_delta_x,
+                      minus_delta_x, "heightEL:", plus_delta_y, minus_delta_y, "diff:", x_new, y_new)
+                return True, (x_new, y_new)
+        return False, (0, 0)
+
+    def trase(self, pins, mass_deltas):
+        start = pins[0].location
+        end = pins[1].location
+        draw_image = ImageDraw.Draw(self.image)
+        big_flag = True
+        flag_x = False
+        grid = self.gridDivisionSize
+        path = []
+        error, start = self.init_trase(start, end, draw_image, 2)
+        if error:
+            print("InitTrase Error! Pin name:", pins[0].connection[0])
+        error, end = self.init_trase(end, start, draw_image, 2)
+        if error:
+            print("InitTrase Error! Pin name:", pins[1].connection[0])
+
+        while big_flag:
+            print("start:", start, "end:", end)
+            if start[0] - end[0] == 0 and start[1] - end[1] == 0:
+                big_flag = False
+                break
+            else:
+                sign_x = sign(start[0] - end[0])
+                difference = int(abs(start[0] - end[0]))
+                print("difference:", difference)
+                buffer = start
+                for x in range(0, difference + 1):
+                    print(x, " start:", start)
+                    if abs(start[0] - end[0]) == 0:
+                        break
+                    flag_error, new_diff = self.check_wires_elements(start)
+                    print(new_diff)
+                    if flag_error:
+                        x_old = start[0] * grid
+                        y_old = start[1] * grid
+                        start = (start[0] + new_diff[0], start[1] + new_diff[1])
+                        x_new = start[0] * grid
+                        y_new = start[1] * grid
+                        #path.append([x_new, y_new])
+                        flag_x = True
+                        #draw_image.line((x_old, y_old, x_new, y_new), fill="purple")
+                        break
+                    else:
+                        buffer = start
+                        start = (start[0] - sign_x * 1, start[1])
+                        x_old = (start[0] + sign_x * 1) * grid
+                        x_new = start[0] * grid
+                        y_new = start[1] * grid
+                        y_old = start[1] * grid
+                        if len(path)!=0:
+                            if x_old - path[len(path)-1][0] != 0 and y_old - path[len(path)-1][1] != 0:
+                                path.append([path[len(path)-1][0], y_old])
+                        path.append([x_old, y_old])
+                        #draw_image.line((x_old, y_old, x_new, y_new), fill="purple")
+                if flag_x:
+                    flag_x = False
+                    continue
+                sign_y = sign(start[1] - end[1])
+                difference = abs(start[1] - end[1])
+                for y in range(0, difference + 1):
+                    print(y, " start:", start, )
+                    if abs(start[1] - end[1]) == 0 and abs(start[0] - end[0]) == 0:
+                        path.append([start[0]*grid, start[1]*grid])
+                        break
+                    flag_error, new_diff = self.check_wires_elements(start)
+                    if flag_error:
+                        x_old = start[0] * grid
+                        y_old = start[1] * grid
+                        start = (start[0] + new_diff[0], start[1] + new_diff[1])
+                        x_new = start[0] * grid
+                        y_new = start[1] * grid
+                        #path.append([x_new, y_new])
+                        #draw_image.line((x_old, y_old, x_new, y_new), fill="purple")
+                    else:
+                        buffer = start
+                        start = (start[0], start[1] - sign_y * 1)
+                        x_old = start[0] * grid
+                        x_new = start[0] * grid
+                        y_new = start[1] * grid
+                        y_old = (start[1] + sign_y * 1) * grid
+                        if len(path) != 0:
+                            if x_old - path[len(path) - 1][0] != 0 and y_old - path[len(path) - 1][1] != 0:
+                                path.append([path[len(path) - 1][0], y_old])
+                        path.append([x_old, y_old])
+                        #draw_image.line((x_old, y_old, x_new, y_new), fill="purple")
+        print(path)
+        for i in range(1, len(path)):
+            draw_image.line((path[i-1][0], path[i-1][1], path[i][0], path[i][1]), fill="purple", width=2)
 
     def HPWL(self):
         """
@@ -421,5 +626,5 @@ class Pin:
         x_end = (x + 0.5) * grid
         y_end = (y + 0.5) * grid
         image.ellipse([x_start, y_start, x_end, y_end], fill=(255, 102, 0), outline="red")
-        if self.connection[1] != "":
-            image.text((x_start, y_start), text=self.connection[0], fill=(255, 255, 255))
+        #if self.connection[1] != "":
+        #    image.text((x_start, y_start), text=self.connection[0], fill=(255, 255, 255))

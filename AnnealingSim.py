@@ -24,6 +24,7 @@ class FullState:
         Конструктор формирует начальное состояние платы.
         """
         self.energy = 0
+        self.locations = []
         self.alpha = alpha
         self.beta = beta
         self.last_state = board
@@ -32,7 +33,7 @@ class FullState:
         self.init_task()
         self.function_energy()
 
-    def init_task(self):
+    def init_task(self, trase_on=False):
         """
         init_task - инициализирует плату с элементами.
         """
@@ -44,15 +45,16 @@ class FullState:
             x = random.randint(0, x_max)
             y = random.randint(0, y_max)
             locations.append([x, y])
+        self.locations = locations
         self.rebuild_board(locations)
-        self.image_state()
-        ImageShow.show(self.images[0])
+        self.image_state(trase_on)
+        #ImageShow.show(self.images[0])
 
-    def image_state(self):
+    def image_state(self, trase_on=False):
         """
         image_state - сохраняет акутальную картинку платы.
         """
-        self.images.append(self.last_state.show_board())
+        self.images.append(self.last_state.show_board(trase_on))
 
     def rebuild_board(self, locations):
         """
@@ -130,6 +132,8 @@ def simulation(alpha, beta, count_iter, start_temperature, config_name, h_board,
     actual_state = FullState(alpha, beta, new_board, dict_conf[config_name])
     actual_state.images[0].save("results/Annealing_StartImage_" + config_name + ".png")
     max_energy = -10000
+    start_conf = [actual_state]
+    max_conf = []
     max_images = []
     energy_mass = []
     temperatures = []
@@ -141,6 +145,8 @@ def simulation(alpha, beta, count_iter, start_temperature, config_name, h_board,
         if actual_state.energy > 0 and actual_state.energy > max_energy:
             max_energy = actual_state.energy
             max_images.clear()
+            #max_conf.clear()
+            max_conf = actual_state.last_state.copy()
             max_images.append(actual_state.images[0])
         energy_mass.append(actual_state.energy)
         temperatures.append(start_temperature - i*step)
@@ -148,7 +154,7 @@ def simulation(alpha, beta, count_iter, start_temperature, config_name, h_board,
     print(max_energy)
     if len(max_images):
         max_images[0].save("results/Annealing_MaxImage_" + config_name + ".png")
-    temperatures.reverse()
+    #temperatures.reverse()
     if not flag_bench:
         plt.plot(temperatures, energy_mass)
         plt.title("Values of Energy")
@@ -156,6 +162,11 @@ def simulation(alpha, beta, count_iter, start_temperature, config_name, h_board,
         plt.ylabel("Energy")
         plt.savefig("results/Annealing_" + config_name + "_values_of_energy.png", dpi = 50)
     print("Execute Time:", datetime.now() - start)
+    #max_conf[0].images.clear()
+    #max_conf.recalculate_pins()
+    max_conf.show_board(True).save("Sxema2.png")
+    start_conf[0].init_task()
+    ImageShow.show(start_conf[0].images[0])
     return max_energy
 
 

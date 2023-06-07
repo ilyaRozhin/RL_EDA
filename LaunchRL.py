@@ -30,7 +30,7 @@ def main_function(name_config, h_board, w_board, grid_size, alpha, beta, gamma, 
             plt.title("Value of Rewards")
             plt.xlabel("Episodes")
             plt.ylabel("Max value of Total Reward")
-            plt.savefig("results/" + config_name + "_values_of_rewards.png", dpi = 50)
+            plt.savefig("results/" + config_name + "_values_of_rewards.png", dpi=50)
         return max(max_rewards)
     return 0
 
@@ -87,3 +87,12 @@ if __name__ == '__main__':
         main_function(name_config, int(h_board), int(w_board), int(grid_size), float(alpha), float(beta), float(gamma), float(alpha_sarsa), bool(work_mode), bool(full_on), int(count_of_iter), int(count_of_episodes), float(epsilon))
     except IndexError:
         print("Не все данные введены кооректно, попробуйте еще раз!!!")
+"""
+if __name__ == '__main__':
+    config_dict = Config.init_configuration_dict()
+    new_board = Board(400, 400, 8)
+    config_name = "config2"
+    for i in config_dict[config_name]:
+        new_board.append_element(i[0], i[1], i[2], i[3], i[4])
+    new_board.show_board().save("Sxema1.png")
+"""

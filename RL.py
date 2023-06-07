@@ -405,3 +405,4 @@ class Agent:
             else:
                 self.experimental_init_task(self.alpha, self.beta)
         return max_mass_images, max_mass_rewards
+
